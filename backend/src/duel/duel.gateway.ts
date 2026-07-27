@@ -56,22 +56,33 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Ручной путь на случай реконнекта в бою (см. TODO в handleDisconnect) — при обычном
+  // старте матча используется attachPlayer() напрямую из MatchmakingGateway.
   @SubscribeMessage('join')
   handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinPayload,
   ): void {
-    const match = this.duelService.getMatch(payload.matchId);
-    if (!match || !match.players[payload.playerId]) {
+    const attached = this.attachPlayer(
+      payload.matchId,
+      payload.playerId,
+      client,
+    );
+    if (!attached) {
       client.emit('join_error', { reason: 'match_not_found' });
-      return;
     }
-    this.socketMeta.set(client.id, {
-      matchId: payload.matchId,
-      playerId: payload.playerId,
-    });
-    void client.join(payload.matchId);
-    this.ensureHeartbeat(payload.matchId);
+  }
+
+  /** Привязывает сокет к матчу: комната + heartbeat. Возвращает false, если матч/игрок неизвестны. */
+  attachPlayer(matchId: string, playerId: string, client: Socket): boolean {
+    const match = this.duelService.getMatch(matchId);
+    if (!match || !match.players[playerId]) {
+      return false;
+    }
+    this.socketMeta.set(client.id, { matchId, playerId });
+    void client.join(matchId);
+    this.ensureHeartbeat(matchId);
+    return true;
   }
 
   @SubscribeMessage('cast_start')

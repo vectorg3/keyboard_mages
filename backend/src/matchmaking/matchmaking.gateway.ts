@@ -7,6 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { DuelGateway } from '../duel/duel.gateway';
 import { MatchmakingService } from './matchmaking.service';
 
 interface FindMatchPayload {
@@ -20,7 +21,10 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
 
   private readonly waitingSockets = new Map<string, Socket>(); // playerId -> сокет, пока он в очереди
 
-  constructor(private readonly matchmakingService: MatchmakingService) {}
+  constructor(
+    private readonly matchmakingService: MatchmakingService,
+    private readonly duelGateway: DuelGateway,
+  ) {}
 
   @SubscribeMessage('find_match')
   handleFindMatch(
@@ -41,7 +45,11 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
           ? client
           : this.waitingSockets.get(playerId);
       this.waitingSockets.delete(playerId);
-      socket?.emit('match_found', {
+      if (!socket) continue;
+
+      // Сразу привязываем сокет к боевой комнате — клиенту не нужно отдельно эмитить 'join'.
+      this.duelGateway.attachPlayer(match.matchId, playerId, socket);
+      socket.emit('match_found', {
         matchId: match.matchId,
         playerId,
         opponentId,

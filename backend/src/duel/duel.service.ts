@@ -148,8 +148,8 @@ export class DuelService {
 
     const expectedChar = cast.trigger[cast.typedCount];
     if (char !== expectedChar) {
-      // Открытый вопрос #3 (game-design.md, раздел 7): полный сброс прогресса при опечатке —
-      // временное решение до принятия финального правила.
+      // Решение зафиксировано (game-design.md, раздел 7.3): опечатка полностью сбрасывает
+      // прогресс каста. Осознанный риск для длинных ultimate-триггеров — см. заметку там же.
       cast.typedCount = 0;
       return { correct: false, progress: 0, resolved: null };
     }

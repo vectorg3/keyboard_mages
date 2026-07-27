@@ -7,6 +7,6 @@ import { DuelGateway } from './duel.gateway';
 @Module({
   imports: [SpellsModule, EffectsModule],
   providers: [DuelService, DuelGateway],
-  exports: [DuelService],
+  exports: [DuelService, DuelGateway],
 })
 export class DuelModule {}

@@ -1,0 +1,32 @@
+:root {
+  --void: #0a0b12;
+  --panel: #15172a;
+  --ink: #eae8f5;
+  --mute: #7d7a99;
+  --arcane: #8b5cf6;
+  --ember: #ff7a45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+    var(--void);
+  color: var(--ink);
+  font-family: 'Manrope', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--arcane);
+  outline-offset: 3px;
+}

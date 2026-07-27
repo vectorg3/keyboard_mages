@@ -1,0 +1,55 @@
+<main class="stage">
+  <header class="title-row" aria-label="Keyboard Mages">
+    @for (row of titleRows; track row.word) {
+      <div class="key-word">
+        @for (letter of row.letters; track letter.index) {
+          <span class="key" [style.--i]="letter.index">{{ letter.char }}</span>
+        }
+      </div>
+    }
+  </header>
+
+  <section class="content" aria-live="polite">
+    @if (socket.status() === 'idle') {
+      <p class="hint">Дуэль 1v1. Побеждает тот, кто быстрее и точнее вводит слова заклинаний.</p>
+    }
+
+    @if (socket.status() === 'searching') {
+      <p class="hint hint--typing">Ищем соперника<span class="cursor" aria-hidden="true"></span></p>
+    }
+
+    @if (socket.match(); as match) {
+      <div class="match">
+        <h2 class="match-title">Бой начался</h2>
+        <p class="match-id">MATCH&nbsp;<span>{{ match.matchId }}</span></p>
+
+        <div class="duel">
+          <div class="fighter">
+            <span class="fighter-name">Вы</span>
+            <div class="hp-bar"><div class="hp-fill"></div></div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="fighter fighter--foe">
+            <span class="fighter-name">{{ match.opponentId }}</span>
+            <div class="hp-bar"><div class="hp-fill"></div></div>
+          </div>
+        </div>
+
+        <p class="placeholder">Боевая сцена появится здесь позже</p>
+      </div>
+    }
+  </section>
+
+  @if (socket.status() !== 'found') {
+    <footer class="footer">
+      <button
+        class="keycap-btn"
+        type="button"
+        [disabled]="socket.status() === 'searching'"
+        (click)="onFindMatch()"
+      >
+        {{ socket.status() === 'searching' ? 'ПОИСК…' : 'НАЙТИ БОЙ' }}
+      </button>
+    </footer>
+  }
+</main>
