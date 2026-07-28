@@ -1,10 +1,13 @@
 :root {
-  --void: #0a0b12;
-  --panel: #15172a;
-  --ink: #eae8f5;
-  --mute: #7d7a99;
-  --arcane: #8b5cf6;
-  --ember: #ff7a45;
+  --paper: #f4efe0;
+  --panel: #fffcf3;
+  --ink: #221e30;
+  --mute: #6f6584;
+  --arcane: #5b21b6;
+  --ember: #b8430c;
+  --hp: #c8203c;
+  --hp-light: #ef5c6e;
+  --line: #ddd0ab;
 }
 
 * {
@@ -19,10 +22,11 @@ body {
 
 body {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
-    var(--void);
+    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(91, 33, 182, 0.12), transparent 60%),
+    radial-gradient(circle, rgba(34, 30, 48, 0.07) 1px, transparent 1.5px) 0 0/10px 10px,
+    var(--paper);
   color: var(--ink);
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   -webkit-font-smoothing: antialiased;
 }
 
