@@ -17,6 +17,10 @@ export class SocketService {
   readonly status = signal<QueueStatus>('idle');
   readonly match = signal<MatchInfo | null>(null);
 
+  /** null пока не идёт отсчёт (матч ещё не найден или уже начался). */
+  readonly countdownMs = signal<number | null>(null);
+  readonly matchStarted = signal(false);
+
   readonly playerId = this.getOrCreatePlayerId();
 
   private socket: Socket | null = null;
@@ -36,6 +40,17 @@ export class SocketService {
     this.socket.on('match_found', (payload: MatchInfo) => {
       this.match.set(payload);
       this.status.set('found');
+      this.matchStarted.set(false);
+      this.countdownMs.set(null);
+    });
+
+    this.socket.on('match_countdown', (payload: { remainingMs: number }) => {
+      this.countdownMs.set(payload.remainingMs);
+    });
+
+    this.socket.on('match_started', () => {
+      this.matchStarted.set(true);
+      this.countdownMs.set(null);
     });
 
     return this.socket;

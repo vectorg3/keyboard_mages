@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { SocketService } from './socket.service';
 
 const TITLE_WORDS = ['KEYBOARD', 'MAGES'];
@@ -28,6 +28,11 @@ export class App {
 
   protected readonly youAttacking = signal(false);
   protected readonly foeAttacking = signal(false);
+
+  protected readonly countdownSeconds = computed(() => {
+    const ms = this.socket.countdownMs();
+    return ms === null ? null : Math.max(1, Math.ceil(ms / 1000));
+  });
 
   onFindMatch(): void {
     this.socket.findMatch();

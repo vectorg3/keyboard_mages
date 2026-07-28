@@ -13,6 +13,10 @@ import {
 
 const MAX_HP = 100;
 
+// Пауза между match_found и стартом боя (см. раздел 7.5 game-design.md): даёт клиентам
+// время отрисовать сцену/арену до того, как разрешены первые касты.
+const PRE_MATCH_DELAY_MS = 3000;
+
 // Плейсхолдер баланса урона по уровню сложности — требует калибровки (раздел 5.2).
 const BASE_DAMAGE_BY_TIER: Record<SpellTier, number> = {
   [SpellTier.Basic]: 8,
@@ -44,6 +48,7 @@ export class DuelService {
       },
       effects: [],
       createdAt: now,
+      startsAt: now + PRE_MATCH_DELAY_MS,
       finishedAt: null,
       winnerId: null,
     };
@@ -87,6 +92,8 @@ export class DuelService {
     const match = this.matches.get(matchId);
     if (!match || match.finishedAt)
       return { ok: false, reason: 'match_not_active' };
+    if (now < match.startsAt)
+      return { ok: false, reason: 'match_not_started' };
 
     const player = match.players[playerId];
     if (!player) return { ok: false, reason: 'unknown_player' };

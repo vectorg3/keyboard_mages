@@ -23,6 +23,7 @@ export interface MatchState {
   playerIds: [string, string];
   effects: ActiveEffect[];
   createdAt: number;
+  startsAt: number; // момент, когда матч официально начинается и разрешены касты (createdAt + пауза)
   finishedAt: number | null;
   winnerId: string | null;
 }

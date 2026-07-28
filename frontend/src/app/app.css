@@ -159,6 +159,23 @@
   padding-bottom: clamp(2rem, 6vw, 3.5rem);
 }
 
+.vs--countdown {
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  color: var(--ember);
+  animation: countdown-pulse 1s ease-in-out infinite;
+}
+
+@keyframes countdown-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+}
+
 /* ---- Scene: the arena and its two characters ---- */
 
 .scene {
@@ -377,9 +394,14 @@
   cursor: pointer;
 }
 
-.debug-btn:hover {
+.debug-btn:hover:not(:disabled) {
   color: var(--ink);
   border-color: var(--arcane);
+}
+
+.debug-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* ---- Footer: keycap CTA ---- */
@@ -438,5 +460,9 @@
   .character-sprite:not(.character-sprite--attack) {
     animation: none;
     background-position: 0% 0%;
+  }
+
+  .vs--countdown {
+    animation: none;
   }
 }

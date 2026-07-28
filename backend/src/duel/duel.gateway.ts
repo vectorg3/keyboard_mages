@@ -37,6 +37,7 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     { matchId: string; playerId: string }
   >();
   private readonly heartbeats = new Map<string, NodeJS.Timeout>();
+  private readonly startedMatches = new Set<string>(); // matchId'ы, для которых уже отправлен match_started
 
   constructor(private readonly duelService: DuelService) {}
 
@@ -145,7 +146,21 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      this.duelService.tick(matchId);
+      const now = Date.now();
+
+      if (now < match.startsAt) {
+        this.server.to(matchId).emit('match_countdown', {
+          remainingMs: match.startsAt - now,
+        });
+        return; // до старта матча нет ни кастов, ни эффектов — тикать нечего
+      }
+
+      if (!this.startedMatches.has(matchId)) {
+        this.startedMatches.add(matchId);
+        this.server.to(matchId).emit('match_started', { startedAt: match.startsAt });
+      }
+
+      this.duelService.tick(matchId, now);
 
       for (const playerId of match.playerIds) {
         this.server.to(matchId).emit('effects_sync', {
@@ -177,5 +192,6 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
       clearInterval(handle);
       this.heartbeats.delete(matchId);
     }
+    this.startedMatches.delete(matchId);
   }
 }

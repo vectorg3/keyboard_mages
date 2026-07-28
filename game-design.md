@@ -28,6 +28,8 @@
 ### Протокол WebSocket-событий (черновик)
 
 ```
+server -> both:   match_countdown { remainingMs }         // раз в тик, пока матч ещё не начался
+server -> both:   match_started { startedAt }             // один раз, когда истекла пауза после match_found
 client -> server: cast_start (spellId)
 client -> server: key_input (char, timestamp)   // посимвольно, для live-эффекта у соперника
 server -> client: input_ack (correct: bool, progress)
@@ -188,6 +190,11 @@ function getEffectiveCastWindow(base: number, effects: ActiveEffect[]): number {
 4. **Синергии школ / комбо-заклинания** — отложены за пределы MVP (см. раздел 8). Базовый
    боевой цикл (25 заклинаний + система эффектов) должен быть играбелен и протестирован до того,
    как добавлять систему комбо между двумя игроками.
+5. **Пауза перед стартом боя** — матч начинается не сразу по `match_found`, а спустя
+   3 секунды (`DuelService.PRE_MATCH_DELAY_MS`, `MatchState.startsAt`). До этого момента
+   `DuelGateway` рассылает `match_countdown { remainingMs }` вместо боевого тика, а
+   `DuelService.startCast` отклоняет любые касты с `reason: 'match_not_started'`. По истечении
+   паузы один раз уходит `match_started`, и обычный heartbeat (эффекты/касты) включается.
 
 ## 8. Открытые вопросы (отложено)
 
