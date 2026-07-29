@@ -9,7 +9,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { DuelService } from './duel.service';
+import { DuelService, MAX_HP } from './duel.service';
+import { MatchState } from './duel.types';
 
 const TICK_INTERVAL_MS = 300; // раздел 6.4: heartbeat раз в 250-500мс на матч
 
@@ -52,12 +53,14 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(
         `Player ${meta.playerId} disconnected from match ${meta.matchId}`,
       );
-      // TODO: реакция на дисконнект в бою (тех. поражение / грейс-период на реконнект)
-      // не зафиксирована в game-design.md — открытый вопрос вне раздела 7.
+      // Технический проигрыш (раздел 7 game-design.md) — сам match_ended уйдёт клиентам на
+      // ближайшем тике heartbeat (см. ensureHeartbeat), который уже проверяет finishedAt.
+      // Никакого грейс-периода на реконнект пока нет — это осознанно оставлено вне раздела 7.
+      this.duelService.forfeitMatch(meta.matchId, meta.playerId);
     }
   }
 
-  // Ручной путь на случай реконнекта в бою (см. TODO в handleDisconnect) — при обычном
+  // Ручной путь на случай реконнекта в бою (см. заметку в handleDisconnect) — при обычном
   // старте матча используется attachPlayer() напрямую из MatchmakingGateway.
   @SubscribeMessage('join')
   handleJoin(
@@ -146,6 +149,11 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
+      // Проверяем ДО ветки предматчевого countdown ниже: иначе дисконнект/форфейт в первые
+      // 3 секунды после match_found завис бы в вечном match_countdown и никогда не дошёл бы
+      // до финального emit'а — countdown-ветка сама тикать останавливается через return.
+      if (this.announceIfFinished(matchId, match)) return;
+
       const now = Date.now();
 
       if (now < match.startsAt) {
@@ -163,11 +171,24 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.duelService.tick(matchId, now);
 
       for (const playerId of match.playerIds) {
-        this.server.to(matchId).emit('effects_sync', {
+        const player = match.players[playerId];
+        const cooldowns: Record<string, number> = {};
+        for (const [spellId, readyAt] of Object.entries(player.cooldowns)) {
+          // Карта кулдаунов копится за весь матч и не чистится — шлём только то, что
+          // реально ещё не готово, иначе клиент годами хранил бы нулевые записи.
+          if (readyAt > now) cooldowns[spellId] = readyAt - now;
+        }
+
+        this.server.to(matchId).emit('player_sync', {
           playerId,
+          hp: player.hp,
+          maxHp: MAX_HP,
+          cooldowns,
           effects: match.effects
             .filter((e) => e.targetPlayerId === playerId)
             .map((e) => ({
+              id: e.id, // стабильный ключ для клиента: sourceSpellId может повторяться,
+              // если один и тот же баф/дебаф активен в двух экземплярах (см. раздел 7.25)
               type: e.effectType,
               sourceSpellId: e.sourceSpellId,
               remainingMs: Math.max(0, e.appliedAt + e.durationMs - Date.now()),
@@ -176,15 +197,22 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       }
 
-      if (match.finishedAt) {
-        this.server
-          .to(matchId)
-          .emit('match_ended', { winnerId: match.winnerId });
-        this.stopHeartbeat(matchId);
-      }
+      // Ловит смерть, случившуюся ВНУТРИ только что вызванного tick() (например, DoT-тик) —
+      // без этой проверки пришлось бы ждать ещё один heartbeat-цикл (до TICK_INTERVAL_MS)
+      // до объявления результата.
+      this.announceIfFinished(matchId, match);
     }, TICK_INTERVAL_MS);
 
     this.heartbeats.set(matchId, handle);
+  }
+
+  /** Если матч завершён — шлёт match_ended и останавливает heartbeat. Возвращает true, если
+   *  завершён (чтобы вызывающий код мог сразу return'уться из тика). */
+  private announceIfFinished(matchId: string, match: MatchState): boolean {
+    if (!match.finishedAt) return false;
+    this.server.to(matchId).emit('match_ended', { winnerId: match.winnerId });
+    this.stopHeartbeat(matchId);
+    return true;
   }
 
   private stopHeartbeat(matchId: string): void {

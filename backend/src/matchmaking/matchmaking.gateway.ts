@@ -58,6 +58,7 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
         matchId: match.matchId,
         playerId,
         opponentId,
+        opponentSchool: match.players[opponentId].school,
       });
     }
   }

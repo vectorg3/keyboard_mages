@@ -304,3 +304,11 @@ export const SPELL_BUTTONS_BY_SCHOOL: Record<string, SpellButtonData[]> = {
     },
   ],
 };
+
+/** Плоский индекс id → заклинание, по всем школам — для подсказки над иконкой активного
+ *  эффекта (иконка эффекта = иконка заклинания-источника, см. раздел 7.25 game-design.md). */
+export const SPELL_BY_ID: Record<string, SpellButtonData> = Object.fromEntries(
+  Object.values(SPELL_BUTTONS_BY_SCHOOL)
+    .flat()
+    .map((spell) => [spell.id, spell]),
+);

@@ -1,6 +1,6 @@
 import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { SocketService, SpellResolvedInfo } from './socket.service';
-import { SPELL_BUTTONS_BY_SCHOOL } from './spells-data';
+import { SPELL_BUTTONS_BY_SCHOOL, SPELL_BY_ID } from './spells-data';
 import { SCHOOL_OPTIONS } from './schools-data';
 
 const TITLE_WORDS = ['KEYBOARD', 'MAGES'];
@@ -11,7 +11,15 @@ export type Fighter = 'you' | 'foe';
  *  for 'you', which spell-button row is shown. Values match backend SpellSchool exactly. */
 export type MageType = 'fire' | 'ice' | 'chaos' | 'arcane' | 'nature';
 
-export const MAGE_TYPES: MageType[] = ['fire', 'ice', 'chaos', 'arcane', 'nature'];
+interface FloatingNumber {
+  id: string;
+  text: string;
+  kind: 'damage' | 'heal';
+}
+
+// Должно совпадать с длительностью CSS-анимации .floating-number (app.css), иначе циферка
+// либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
+const FLOATING_NUMBER_LIFETIME_MS = 1000;
 
 @Component({
   selector: 'app-root',
@@ -22,15 +30,15 @@ export const MAGE_TYPES: MageType[] = ['fire', 'ice', 'chaos', 'arcane', 'nature
 export class App {
   protected readonly socket = inject(SocketService);
   protected readonly titleRows = buildTitleRows(TITLE_WORDS);
-  protected readonly mageTypes = MAGE_TYPES;
   protected readonly schoolOptions = SCHOOL_OPTIONS;
 
   /** Школа, выбранная игроком на главном экране — определяет и спрайт "вас", и панель
    *  заклинаний, и то, что реально уходит в find_match. */
   protected readonly youMageType = signal<MageType>('fire');
-  // TODO: сервер не сообщает клиентам реальную школу соперника — это по-прежнему
-  // локальная заглушка для превью спрайта, не связанная с матчем.
-  protected readonly foeMageType = signal<MageType>('ice');
+  /** Школа соперника — из match_found (реальный выбор соперника), не локальная заглушка. */
+  protected readonly foeMageType = computed<MageType>(
+    () => (this.socket.match()?.opponentSchool as MageType | undefined) ?? 'fire',
+  );
 
   protected readonly youAttacking = signal(false);
   protected readonly foeAttacking = signal(false);
@@ -64,6 +72,26 @@ export class App {
     return this.youSpells().find((s) => s.id === cast.spellId)?.trigger ?? null;
   });
 
+  protected readonly youHpPercent = computed(() => this.hpPercentFor(this.socket.match()?.playerId));
+  protected readonly foeHpPercent = computed(() => this.hpPercentFor(this.socket.match()?.opponentId));
+
+  /** Оставшийся кулдаун (мс) по spellId для игрока — undefined/отсутствие ключа = готово. */
+  protected readonly youCooldowns = computed(() => {
+    const playerId = this.socket.match()?.playerId;
+    if (!playerId) return {};
+    return this.socket.cooldownsByPlayerId()[playerId] ?? {};
+  });
+
+  /** Летающие циферки урона/хила — по одному массиву на бойца, элементы сами себя удаляют
+   *  через FLOATING_NUMBER_LIFETIME_MS (см. constructor). */
+  protected readonly youFloatingNumbers = signal<FloatingNumber[]>([]);
+  protected readonly foeFloatingNumbers = signal<FloatingNumber[]>([]);
+
+  /** Активные баффы/дебаффы над персонажем — иконка = иконка заклинания-источника
+   *  (`sourceSpellId`), не общая на тип эффекта (раздел 7.25 game-design.md). */
+  protected readonly youEffects = computed(() => this.effectsFor(this.socket.match()?.playerId));
+  protected readonly foeEffects = computed(() => this.effectsFor(this.socket.match()?.opponentId));
+
   constructor() {
     // Проигрываем анимацию атаки на любой успешный каст — единственный доступный "эффект
     // применения заклинания" сейчас, независимо от типа заклинания (Attack/Defense/Support).
@@ -72,10 +100,68 @@ export class App {
       if (!resolved?.success) return;
       this.triggerAttack(resolved.casterId === this.socket.playerId ? 'you' : 'foe');
     });
+
+    // Летающая циферка урона/хила на любое изменение HP любого игрока — источник (прямой удар,
+    // DoT-тик, отражение щитом и т.д.) не важен, просто разница в player_sync.
+    effect(() => {
+      const change = this.socket.lastHpChange();
+      const match = this.socket.match();
+      if (!change || !match) return;
+
+      const fighter: Fighter | null =
+        change.playerId === match.playerId ? 'you' : change.playerId === match.opponentId ? 'foe' : null;
+      if (!fighter) return;
+
+      const list = fighter === 'you' ? this.youFloatingNumbers : this.foeFloatingNumbers;
+      const entry: FloatingNumber = {
+        id: change.id,
+        text: (change.amount > 0 ? '+' : '') + change.amount,
+        kind: change.amount > 0 ? 'heal' : 'damage',
+      };
+      list.update((arr) => [...arr, entry]);
+      setTimeout(
+        () => list.update((arr) => arr.filter((e) => e.id !== entry.id)),
+        FLOATING_NUMBER_LIFETIME_MS,
+      );
+    });
+  }
+
+  private hpPercentFor(playerId: string | undefined): number {
+    if (!playerId) return 100;
+    const hp = this.socket.hpByPlayerId()[playerId];
+    if (!hp) return 100;
+    return Math.max(0, Math.min(100, (hp.hp / hp.maxHp) * 100));
+  }
+
+  private effectsFor(playerId: string | undefined) {
+    if (!playerId) return [];
+    return this.socket.effectsByPlayerId()[playerId] ?? [];
+  }
+
+  /** Секунды с одним знаком после запятой, для таймера поверх заблюренной кнопки заклинания
+   *  и для таймера на иконке активного эффекта. */
+  formatCooldown(remainingMs: number): string {
+    return (remainingMs / 1000).toFixed(1);
+  }
+
+  /** Название заклинания-источника эффекта — для title-подсказки на иконке. */
+  effectSpellName(sourceSpellId: string): string {
+    return SPELL_BY_ID[sourceSpellId]?.name ?? sourceSpellId;
   }
 
   onFindMatch(): void {
     this.socket.findMatch(this.youMageType());
+  }
+
+  /** Кнопка на экране результата матча — сбрасывает и серверные, и локальные визуальные
+   *  остатки боя (анимации, циферки), возвращая на главный экран (спеллбук). */
+  returnToMenu(): void {
+    this.socket.resetMatch();
+    this.youAttacking.set(false);
+    this.foeAttacking.set(false);
+    this.youFloatingNumbers.set([]);
+    this.foeFloatingNumbers.set([]);
+    this.selectedSpellId.set(null);
   }
 
   /** Выбор школы в спеллбуке на главном экране, до постановки в очередь. */
@@ -90,14 +176,11 @@ export class App {
     this.selectedSpellId.set(id);
   }
 
-  setMageType(fighter: Fighter, type: MageType): void {
-    (fighter === 'you' ? this.youMageType : this.foeMageType).set(type);
-  }
-
   castSpellByIndex(index: number): void {
     if (this.socket.activeCast() || !this.socket.matchStarted()) return;
     const spell = this.youSpells()[index];
-    if (spell) this.socket.castSpell(spell.id);
+    if (!spell || this.youCooldowns()[spell.id] !== undefined) return;
+    this.socket.castSpell(spell.id);
   }
 
   @HostListener('window:keydown', ['$event'])

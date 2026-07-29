@@ -11,7 +11,7 @@ import {
   PlayerState,
 } from './duel.types';
 
-const MAX_HP = 100;
+export const MAX_HP = 100;
 
 // Пауза между match_found и стартом боя (см. раздел 7.5 game-design.md): даёт клиентам
 // время отрисовать сцену/арену до того, как разрешены первые касты.
@@ -62,6 +62,18 @@ export class DuelService {
 
   removeMatch(matchId: string): void {
     this.matches.delete(matchId);
+  }
+
+  /**
+   * Технический проигрыш — при дисконнекте игрока в бою (см. DuelGateway.handleDisconnect,
+   * TODO там снят). Не трогает уже завершённый матч (двойной дисконнект/дисконнект после
+   * победы по HP не должен переписывать реального победителя).
+   */
+  forfeitMatch(matchId: string, loserId: string, now = Date.now()): void {
+    const match = this.matches.get(matchId);
+    if (!match || match.finishedAt) return;
+    match.finishedAt = now;
+    match.winnerId = this.opponentId(match, loserId);
   }
 
   private createPlayerState(playerId: string, school: SpellSchool): PlayerState {

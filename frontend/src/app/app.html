@@ -31,19 +31,34 @@
       <div class="character character--you">
         <div class="character-status">
           <span class="fighter-name">Вы</span>
-          <div class="hp-bar"><div class="hp-fill"></div></div>
+          <div class="hp-bar"><div class="hp-fill" [style.width.%]="youHpPercent()"></div></div>
         </div>
-        <div
-          class="character-sprite"
-          [class.character-sprite--fire]="youMageType() === 'fire'"
-          [class.character-sprite--ice]="youMageType() === 'ice'"
-          [class.character-sprite--chaos]="youMageType() === 'chaos'"
-          [class.character-sprite--arcane]="youMageType() === 'arcane'"
-          [class.character-sprite--nature]="youMageType() === 'nature'"
-          [class.character-sprite--attack]="youAttacking()"
-          (animationend)="onAttackAnimationEnd('you')"
-          aria-hidden="true"
-        ></div>
+        <div class="character-sprite-wrap">
+          <div class="effect-icons" aria-hidden="true">
+            @for (fx of youEffects(); track fx.id) {
+              <div class="effect-icon" [title]="effectSpellName(fx.sourceSpellId)">
+                <img [src]="'/spell-icons/' + fx.sourceSpellId + '.png'" [alt]="effectSpellName(fx.sourceSpellId)" />
+                <span class="effect-icon-timer">{{ formatCooldown(fx.remainingMs) }}</span>
+              </div>
+            }
+          </div>
+          <div class="floating-numbers" aria-hidden="true">
+            @for (n of youFloatingNumbers(); track n.id) {
+              <span class="floating-number" [class.floating-number--heal]="n.kind === 'heal'">{{ n.text }}</span>
+            }
+          </div>
+          <div
+            class="character-sprite"
+            [class.character-sprite--fire]="youMageType() === 'fire'"
+            [class.character-sprite--ice]="youMageType() === 'ice'"
+            [class.character-sprite--chaos]="youMageType() === 'chaos'"
+            [class.character-sprite--arcane]="youMageType() === 'arcane'"
+            [class.character-sprite--nature]="youMageType() === 'nature'"
+            [class.character-sprite--attack]="youAttacking()"
+            (animationend)="onAttackAnimationEnd('you')"
+            aria-hidden="true"
+          ></div>
+        </div>
       </div>
 
       <span class="vs" [class.vs--countdown]="!socket.matchStarted()">
@@ -53,19 +68,34 @@
       <div class="character character--foe">
         <div class="character-status">
           <span class="fighter-name">{{ match.opponentId }}</span>
-          <div class="hp-bar"><div class="hp-fill"></div></div>
+          <div class="hp-bar"><div class="hp-fill" [style.width.%]="foeHpPercent()"></div></div>
         </div>
-        <div
-          class="character-sprite"
-          [class.character-sprite--fire]="foeMageType() === 'fire'"
-          [class.character-sprite--ice]="foeMageType() === 'ice'"
-          [class.character-sprite--chaos]="foeMageType() === 'chaos'"
-          [class.character-sprite--arcane]="foeMageType() === 'arcane'"
-          [class.character-sprite--nature]="foeMageType() === 'nature'"
-          [class.character-sprite--attack]="foeAttacking()"
-          (animationend)="onAttackAnimationEnd('foe')"
-          aria-hidden="true"
-        ></div>
+        <div class="character-sprite-wrap">
+          <div class="effect-icons" aria-hidden="true">
+            @for (fx of foeEffects(); track fx.id) {
+              <div class="effect-icon" [title]="effectSpellName(fx.sourceSpellId)">
+                <img [src]="'/spell-icons/' + fx.sourceSpellId + '.png'" [alt]="effectSpellName(fx.sourceSpellId)" />
+                <span class="effect-icon-timer">{{ formatCooldown(fx.remainingMs) }}</span>
+              </div>
+            }
+          </div>
+          <div class="floating-numbers" aria-hidden="true">
+            @for (n of foeFloatingNumbers(); track n.id) {
+              <span class="floating-number" [class.floating-number--heal]="n.kind === 'heal'">{{ n.text }}</span>
+            }
+          </div>
+          <div
+            class="character-sprite"
+            [class.character-sprite--fire]="foeMageType() === 'fire'"
+            [class.character-sprite--ice]="foeMageType() === 'ice'"
+            [class.character-sprite--chaos]="foeMageType() === 'chaos'"
+            [class.character-sprite--arcane]="foeMageType() === 'arcane'"
+            [class.character-sprite--nature]="foeMageType() === 'nature'"
+            [class.character-sprite--attack]="foeAttacking()"
+            (animationend)="onAttackAnimationEnd('foe')"
+            aria-hidden="true"
+          ></div>
+        </div>
       </div>
     </div>
 
@@ -79,7 +109,7 @@
             [class.spell-btn--tier-2]="spellBtn.tier === 2"
             [class.spell-btn--tier-3]="spellBtn.tier === 3"
             [class.spell-btn--active]="socket.activeCast()?.spellId === spellBtn.id"
-            [disabled]="!socket.matchStarted() || !!socket.activeCast()"
+            [disabled]="!socket.matchStarted() || !!socket.activeCast() || youCooldowns()[spellBtn.id] !== undefined"
             [title]="spellBtn.name"
             (click)="castSpellByIndex(i)"
           >
@@ -89,6 +119,11 @@
               [alt]="spellBtn.name"
             />
             <span class="spell-btn-key">{{ i + 1 }}</span>
+            @if (youCooldowns()[spellBtn.id]; as remainingMs) {
+              <div class="spell-btn-cooldown" aria-hidden="true">
+                <span class="spell-btn-cooldown-timer">{{ formatCooldown(remainingMs) }}</span>
+              </div>
+            }
           </button>
         }
       </div>
@@ -124,11 +159,6 @@
       >
         Атака: соперник
       </button>
-    </div>
-    <div class="debug-panel">
-      @for (type of mageTypes; track type) {
-        <button type="button" class="debug-btn" (click)="setMageType('foe', type)">Соперник: {{ type }}</button>
-      }
     </div>
   }
 
@@ -209,5 +239,20 @@
         {{ socket.status() === 'searching' ? 'ПОИСК…' : 'НАЙТИ БОЙ' }}
       </button>
     </footer>
+  }
+
+  @if (socket.matchResult(); as result) {
+    <div class="match-result-backdrop">
+      <div class="match-result">
+        <h2
+          class="match-result-title"
+          [class.match-result-title--win]="result === 'win'"
+          [class.match-result-title--loss]="result === 'loss'"
+        >
+          {{ result === 'win' ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ' }}
+        </h2>
+        <button type="button" class="keycap-btn" (click)="returnToMenu()">Вернуться на главную</button>
+      </div>
+    </div>
   }
 </main>
