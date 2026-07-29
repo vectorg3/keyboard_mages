@@ -36,8 +36,10 @@
         <div
           class="character-sprite"
           [class.character-sprite--fire]="youMageType() === 'fire'"
-          [class.character-sprite--frost]="youMageType() === 'frost'"
+          [class.character-sprite--ice]="youMageType() === 'ice'"
           [class.character-sprite--chaos]="youMageType() === 'chaos'"
+          [class.character-sprite--arcane]="youMageType() === 'arcane'"
+          [class.character-sprite--nature]="youMageType() === 'nature'"
           [class.character-sprite--attack]="youAttacking()"
           (animationend)="onAttackAnimationEnd('you')"
           aria-hidden="true"
@@ -56,14 +58,53 @@
         <div
           class="character-sprite"
           [class.character-sprite--fire]="foeMageType() === 'fire'"
-          [class.character-sprite--frost]="foeMageType() === 'frost'"
+          [class.character-sprite--ice]="foeMageType() === 'ice'"
           [class.character-sprite--chaos]="foeMageType() === 'chaos'"
+          [class.character-sprite--arcane]="foeMageType() === 'arcane'"
+          [class.character-sprite--nature]="foeMageType() === 'nature'"
           [class.character-sprite--attack]="foeAttacking()"
           (animationend)="onAttackAnimationEnd('foe')"
           aria-hidden="true"
         ></div>
       </div>
     </div>
+
+    @if (youSpells().length) {
+      <div class="spell-bar" aria-label="Заклинания">
+        @for (spellBtn of youSpells(); track spellBtn.id; let i = $index) {
+          <button
+            type="button"
+            class="spell-btn"
+            [class.spell-btn--tier-1]="spellBtn.tier === 1"
+            [class.spell-btn--tier-2]="spellBtn.tier === 2"
+            [class.spell-btn--tier-3]="spellBtn.tier === 3"
+            [class.spell-btn--active]="socket.activeCast()?.spellId === spellBtn.id"
+            [disabled]="!socket.matchStarted() || !!socket.activeCast()"
+            [title]="spellBtn.name"
+            (click)="castSpellByIndex(i)"
+          >
+            <img
+              class="spell-btn-icon"
+              [src]="'/spell-icons/' + spellBtn.id + '.png'"
+              [alt]="spellBtn.name"
+            />
+            <span class="spell-btn-key">{{ i + 1 }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (socket.castRejected(); as reason) {
+      <p class="cast-rejected">{{ reason }}</p>
+    }
+
+    @if (activeCastTrigger(); as trigger) {
+      <div class="cast-window" aria-live="assertive">
+        @for (ch of trigger.split(''); track $index) {
+          <span class="cast-char" [class.cast-char--done]="$index < typedCount()">{{ ch }}</span>
+        }
+      </div>
+    }
 
     <!-- TEMP: manual triggers standing in for real matchmaking data (mage picks, spell-cast events) -->
     <div class="debug-panel">
@@ -86,17 +127,78 @@
     </div>
     <div class="debug-panel">
       @for (type of mageTypes; track type) {
-        <button type="button" class="debug-btn" (click)="setMageType('you', type)">Вы: {{ type }}</button>
-      }
-    </div>
-    <div class="debug-panel">
-      @for (type of mageTypes; track type) {
         <button type="button" class="debug-btn" (click)="setMageType('foe', type)">Соперник: {{ type }}</button>
       }
     </div>
   }
 
   @if (socket.status() !== 'found') {
+    <section class="spellbook" aria-label="Выбор школы и заклинаний">
+      <div class="spellbook-left">
+        <div class="school-select" aria-label="Выбор школы">
+          @for (school of schoolOptions; track school.id) {
+            <button
+              type="button"
+              class="school-btn"
+              [class.school-btn--active]="youMageType() === school.id"
+              [disabled]="socket.status() !== 'idle'"
+              [title]="school.label"
+              (click)="selectSchool(school.id)"
+            >
+              <img class="school-btn-icon" [src]="'/school-icons/' + school.icon + '.png'" [alt]="school.label" />
+            </button>
+          }
+        </div>
+
+        <div class="spellbook-list">
+          @for (spell of youSpells(); track spell.id) {
+            <button
+              type="button"
+              class="spellbook-item"
+              [class.spellbook-item--active]="selectedSpellId() === spell.id"
+              (click)="selectSpellInfo(spell.id)"
+            >
+              <img class="spellbook-item-icon" [src]="'/spell-icons/' + spell.id + '.png'" [alt]="spell.name" />
+              <span class="spellbook-item-name">{{ spell.name }}</span>
+            </button>
+          } @empty {
+            <p class="spellbook-empty">Для этой школы пока нет заклинаний.</p>
+          }
+        </div>
+
+        @if (selectedSpell(); as spell) {
+          <div class="spellbook-details">
+            <h3 class="spellbook-details-name">{{ spell.name }}</h3>
+            <p class="spellbook-details-description">{{ spell.description }}</p>
+            <dl class="spellbook-details-stats">
+              @if (spell.damage) {
+                <dt>Урон</dt>
+                <dd>{{ spell.damage }}</dd>
+              }
+              @if (spell.effect) {
+                <dt>Эффект</dt>
+                <dd>{{ spell.effect }}</dd>
+              }
+              <dt>Восстановление</dt>
+              <dd>{{ spell.cooldownSec }} сек</dd>
+            </dl>
+          </div>
+        }
+      </div>
+
+      <div class="spellbook-right">
+        <div
+          class="character-sprite spellbook-sprite"
+          [class.character-sprite--fire]="youMageType() === 'fire'"
+          [class.character-sprite--ice]="youMageType() === 'ice'"
+          [class.character-sprite--chaos]="youMageType() === 'chaos'"
+          [class.character-sprite--arcane]="youMageType() === 'arcane'"
+          [class.character-sprite--nature]="youMageType() === 'nature'"
+          aria-hidden="true"
+        ></div>
+      </div>
+    </section>
+
     <footer class="footer">
       <button
         class="keycap-btn"

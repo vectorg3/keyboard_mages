@@ -169,6 +169,7 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
             .filter((e) => e.targetPlayerId === playerId)
             .map((e) => ({
               type: e.effectType,
+              sourceSpellId: e.sourceSpellId,
               remainingMs: Math.max(0, e.appliedAt + e.durationMs - Date.now()),
               magnitude: e.magnitude,
             })),

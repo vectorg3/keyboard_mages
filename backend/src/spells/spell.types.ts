@@ -53,7 +53,7 @@ export interface Spell {
   damage?: { min: number; max: number };
   onHitEffect?: SpellOnHitEffect;
   // Как onHitEffect, но при успешном касте применяется РОВНО ОДИН случайно выбранный элемент
-  // из пула (см. Unstable Surge, Chaotic Shield). Взаимоисключим с onHitEffect.
+  // из пула (см. Unstable Surge, Entropy Veil). Взаимоисключим с onHitEffect.
   randomEffectPool?: SpellOnHitEffect[];
   // Мгновенное исцеление кастера при успешном касте (см. Phoenix Rebirth) — в отличие от
   // 'hot' это не тикающий эффект, а разовое изменение HP прямо в момент разрешения каста.

@@ -143,14 +143,14 @@ export const SPELL_ROSTER: Spell[] = [
     SpellSchool.Fire,
     SpellType.Attack,
     SpellTier.Ultimate,
-    'Мощный взрыв, максимальный прямой урон школы',
+    'Мощный взрыв, максимальный прямой урон школы + поджог (DoT 3 сек)',
     {
       damage: [20, 24],
       onHitEffect: {
         type: 'dot',
         magnitude: 4,
-        durationMs: 2000,
-        tickIntervalMs: 500,
+        durationMs: 3000,
+        tickIntervalMs: 1000,
       },
     },
   ),
@@ -392,8 +392,8 @@ export const SPELL_ROSTER: Spell[] = [
     },
   ),
   spell(
-    'chaos_chaotic_shield',
-    'Chaotic Shield',
+    'chaos_entropy_veil',
+    'Entropy Veil',
     'entropyveil',
     SpellSchool.Chaos,
     SpellType.Defense,
@@ -425,7 +425,7 @@ export const SPELL_ROSTER: Spell[] = [
   spell(
     'chaos_corruption',
     'Corruption',
-    'plaguebind',
+    'corruption',
     SpellSchool.Chaos,
     SpellType.Attack,
     SpellTier.Advanced,
@@ -443,7 +443,7 @@ export const SPELL_ROSTER: Spell[] = [
   spell(
     'chaos_void_collapse',
     'Void Collapse',
-    'oblivionrift',
+    'voidcollapse',
     SpellSchool.Chaos,
     SpellType.Attack,
     SpellTier.Ultimate,

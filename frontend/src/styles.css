@@ -8,6 +8,9 @@
   --hp: #c8203c;
   --hp-light: #ef5c6e;
   --line: #ddd0ab;
+  --tier-basic: #2f6fed;
+  --tier-epic: #7c3aed;
+  --tier-legendary: #c99a2e;
 }
 
 * {

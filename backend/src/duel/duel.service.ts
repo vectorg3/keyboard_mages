@@ -310,7 +310,7 @@ export class DuelService {
     // с уроном, а у Support/Defense-заклинания (Winter's Grasp, Frozen Armor) — единственный
     // эффект каста. target: 'self' вешает эффект на самого кастера (щиты/баффы), по умолчанию —
     // на соперника (дебаффы вроде slow/dot/cooldown_reduction). randomEffectPool (Unstable
-    // Surge, Chaotic Shield) — то же самое, но заранее выбирается ровно один случайный элемент
+    // Surge, Entropy Veil) — то же самое, но заранее выбирается ровно один случайный элемент
     // из пула вместо фиксированного onHitEffect.
     const chosenEffect =
       spell?.onHitEffect ??
