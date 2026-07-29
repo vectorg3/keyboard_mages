@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SPELL_ROSTER } from './spell-roster';
-import { Spell } from './spell.types';
+import { Spell, SpellSchool, SpellTier } from './spell.types';
 
 @Injectable()
 export class SpellsService {
@@ -24,5 +24,21 @@ export class SpellsService {
 
   getByTrigger(trigger: string): Spell | undefined {
     return this.byTrigger.get(trigger);
+  }
+
+  /** Заклинания той же школы и тира, что и данное (включая само заклинание) —
+   *  делят один общий кулдаун (см. раздел 7 game-design.md). */
+  getTierMates(spell: Spell): Spell[] {
+    return SPELL_ROSTER.filter(
+      (s) => s.school === spell.school && s.tier === spell.tier,
+    );
+  }
+
+  getBySchoolAndTier(school: SpellSchool, tier: SpellTier): Spell[] {
+    return SPELL_ROSTER.filter((s) => s.school === school && s.tier === tier);
+  }
+
+  getBySchool(school: SpellSchool): Spell[] {
+    return SPELL_ROSTER.filter((s) => s.school === school);
   }
 }

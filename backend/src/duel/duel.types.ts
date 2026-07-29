@@ -1,4 +1,5 @@
 import { ActiveEffect } from '../effects/effect.types';
+import { SpellSchool } from '../spells/spell.types';
 
 export interface ActiveCast {
   castId: string;
@@ -11,6 +12,7 @@ export interface ActiveCast {
 
 export interface PlayerState {
   playerId: string;
+  school: SpellSchool; // школа мага, выбранная перед поиском матча (см. раздел 7 game-design.md)
   hp: number;
   cooldowns: Record<string, number>; // spellId -> timestamp, когда снова доступен
   activeCast: ActiveCast | null;

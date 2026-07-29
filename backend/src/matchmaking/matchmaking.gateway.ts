@@ -8,10 +8,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { DuelGateway } from '../duel/duel.gateway';
+import { SpellSchool } from '../spells/spell.types';
 import { MatchmakingService } from './matchmaking.service';
 
 interface FindMatchPayload {
   playerId: string;
+  school: SpellSchool;
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
@@ -31,7 +33,10 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: FindMatchPayload,
   ): void {
-    const match = this.matchmakingService.enqueue(payload.playerId);
+    const match = this.matchmakingService.enqueue(
+      payload.playerId,
+      payload.school,
+    );
     if (!match) {
       this.waitingSockets.set(payload.playerId, client);
       client.emit('queue_joined');

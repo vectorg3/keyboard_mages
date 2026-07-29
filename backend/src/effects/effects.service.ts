@@ -69,4 +69,31 @@ export class EffectsService {
   isSilenced(effects: ActiveEffect[]): boolean {
     return effects.some((e) => e.effectType === 'silence');
   }
+
+  /**
+   * Поглощает урон активными shield-эффектами цели, списывая их magnitude (остаток пула HP)
+   * прямо на переданных объектах — вызывающий должен убрать из match.effects те, что
+   * обнулились, и сам применить reflected-урон к атакующему.
+   */
+  absorbWithShields(
+    damage: number,
+    shieldEffects: ActiveEffect[],
+  ): { remainingDamage: number; absorbed: number; reflected: number } {
+    let remainingDamage = damage;
+    let absorbed = 0;
+    let reflected = 0;
+
+    for (const shield of shieldEffects) {
+      if (remainingDamage <= 0) break;
+      const amount = Math.min(remainingDamage, shield.magnitude);
+      if (amount <= 0) continue;
+
+      shield.magnitude -= amount;
+      remainingDamage -= amount;
+      absorbed += amount;
+      reflected += amount * (shield.reflectRatio ?? 0);
+    }
+
+    return { remainingDamage, absorbed, reflected: Math.round(reflected) };
+  }
 }
