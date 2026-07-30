@@ -1,7 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../environments/environment';
 
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = environment.apiUrl;
 const PLAYER_ID_KEY = 'km_player_id';
 
 export type QueueStatus = 'idle' | 'searching' | 'found';
