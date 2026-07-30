@@ -1,4 +1,4 @@
-<main class="stage">
+<main class="stage" (click)="onStageClick($event)">
   <header class="title-row" aria-label="Keyboard Mages">
     @for (row of titleRows; track row.word) {
       <div class="key-word">

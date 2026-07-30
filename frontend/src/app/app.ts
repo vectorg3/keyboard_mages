@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { SocketService } from './socket.service';
 import { MageType } from './shared/mage-type';
+import { ClickSoundService } from './shared/click-sound.service';
 import { Lobby } from './lobby/lobby';
 import { Match } from './match/match';
 
@@ -14,12 +15,21 @@ const TITLE_WORDS = ['KEYBOARD', 'MAGES'];
 })
 export class App {
   protected readonly socket = inject(SocketService);
+  private readonly clickSound = inject(ClickSoundService);
   protected readonly titleRows = buildTitleRows(TITLE_WORDS);
 
   /** Школа, выбранная игроком — должна пережить переход Lobby → Match (сервер не возвращает
    *  игроку его же школу, только школу соперника, раздел 7.34 game-design.md), поэтому живёт
    *  в корневом шелле, а не в одном из двух экранов. */
   protected readonly youMageType = signal<MageType>('fire');
+
+  /** Один делегированный обработчик на весь app вместо (click) на каждой из кнопок школ/
+   *  заклинаний/каста/меню — играет звук клика для любой кнопки, всплывающей до .stage. */
+  protected onStageClick(event: MouseEvent): void {
+    if ((event.target as HTMLElement).closest('button')) {
+      this.clickSound.play();
+    }
+  }
 }
 
 function buildTitleRows(words: string[]) {

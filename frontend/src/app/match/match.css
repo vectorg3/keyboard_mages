@@ -111,7 +111,7 @@
   border: 2px solid var(--ink);
   border-radius: 0;
   box-shadow: 3px 3px 0 var(--line);
-  cursor: pointer;
+  cursor: url('/ui/Cursor.png'), pointer;
   transition:
     transform 0.08s ease,
     box-shadow 0.08s ease,
@@ -152,7 +152,7 @@
 }
 
 .spell-btn:disabled {
-  cursor: default;
+  cursor: url('/ui/Cursor.png'), default;
   opacity: 0.5;
 }
 

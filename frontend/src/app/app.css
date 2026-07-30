@@ -1,11 +1,14 @@
 .stage {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(2rem, 6vw, 4rem) 1.25rem;
-  gap: 2rem;
+  /* Вертикальный отступ/gap — от vh, а не vw: иначе на невысоких широких окнах (планшет
+     landscape, ноутбук) паддинг не уменьшался вместе с высотой и появлялся скролл. */
+  padding: clamp(1rem, 3vh, 2.5rem) 1.25rem;
+  gap: clamp(1rem, 2.5vh, 2rem);
+  overflow: hidden;
 }
 
 /* <app-lobby>/<app-match> — реальные host-элементы в DOM (не просто разметка, как раньше при
@@ -26,6 +29,10 @@ app-match {
   flex-wrap: wrap;
   justify-content: center;
   gap: clamp(0.75rem, 3vw, 1.5rem);
+  padding: clamp(0.6rem, 2vw, 1.1rem) clamp(1rem, 3vw, 2rem);
+  background: #8b8a92;
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
 }
 
 .key-word {
@@ -33,6 +40,7 @@ app-match {
   gap: clamp(0.3rem, 1vw, 0.5rem);
 }
 
+/* Фон — клавиша из public/ui/buttons/key_button.png (вырезана из UI-набора спрайтов). */
 .key {
   display: grid;
   place-items: center;
@@ -41,10 +49,14 @@ app-match {
   font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
   font-size: clamp(0.8rem, 2.4vw, 1.3rem);
   color: var(--ink);
-  background: var(--panel);
-  border-radius: 0;
-  border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--line);
+  background-image: url('/ui/buttons/key_button.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  /* Смещает центр текста вверх-вправо на пару пикселей — key_button.png рисует "поверхность"
+     клавиши не по центру спрайта (снизу-слева у неё тень/обод), паддинг здесь не мешает
+     transform из key-drop анимации ниже. */
+  padding: 0 0 0.3rem 0.3rem;
   opacity: 0;
   transform: translateY(-14px);
   animation: key-drop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) forwards;

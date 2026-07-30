@@ -26,6 +26,11 @@ export class Lobby {
   /** Кнопки заклинаний школы игрока — пусто, если для школы ещё нет данных/иконок. */
   protected readonly youSpells = computed(() => SPELL_BUTTONS_BY_SCHOOL[this.youMageType()] ?? []);
 
+  /** Название школы над спрайтом мага (Fire/Frost/Arcane/Chaos/Nature). */
+  protected readonly youMageLabel = computed(
+    () => this.schoolOptions.find((s) => s.id === this.youMageType())?.label ?? '',
+  );
+
   /** Заклинание, выбранное в спеллбуке (для показа описания/статов) — чисто локальный
    *  предпросмотр, не нужен за пределами Lobby. */
   protected readonly selectedSpellId = signal<string | null>(null);

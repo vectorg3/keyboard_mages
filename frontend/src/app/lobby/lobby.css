@@ -1,82 +1,136 @@
-/* ---- Content area (hint / searching) ---- */
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 1rem;
-  min-height: 0;
-  width: min(100%, 30rem);
-}
-
-.hint {
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--mute);
-  font-size: 1.05rem;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.hint--typing {
-  color: var(--ink);
-}
-
-.cursor {
-  display: inline-block;
-  width: 0.55em;
-  height: 1em;
-  margin-left: 0.15em;
-  background: var(--ember);
-  vertical-align: -0.15em;
-  animation: blink 1s steps(1) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 /* ---- Spellbook: always-open school + spell browser above the find-match button ---- */
 
+/* Фон — разворот открытой книги (public/ui/spellbook-open.png, вырезан из UI.png).
+   aspect-ratio держит пропорции спрайта (273×167), иначе background-size: 100% 100% его исказит. */
 .spellbook {
+  position: relative;
+  aspect-ratio: 273 / 167;
+  /* Ограничена и по ширине (vw), и по высоте видового окна (vh, пересчитан через aspect-ratio) —
+     иначе на невысоких экранах (~1024×768 и ниже) книга шире экрана по vw упёрлась бы в высоту
+     и вызвала вертикальный скролл. */
+  width: min(94vw, 74rem, calc(64vh * (273 / 167)));
+  /* Доп. верхний отступ (сверх gap у .stage) — только между заголовком и лентой "Выбери мага",
+     не трогая расстояние до футера. clamp от vh — как остальные вертикальные отступы, чтобы не
+     сломать бюджет высоты (.stage: height:100dvh; overflow:hidden — без скролла) на низких viewport. */
+  margin: clamp(0.75rem, 2.5vh, 1.75rem) auto 0;
+  background-image: url('/ui/spellbook-open.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  /* container-type — чтобы spellbook-frame мог позиционироваться в cqw/cqh (% от СОБСТВЕННОГО
+     размера .spellbook), а не в %, которые CSS считает от ширины containing block — ближайшего
+     block-уровня предка (.stage), а не от уже сузившегося (aspect-ratio + width) .spellbook.
+     Именно из-за этой путаницы рамка страниц и контент внутри неё не совпадали при other viewport. */
+  container-type: inline-size;
+}
+
+/* Ленточный хэдер над книгой (public/ui/headers/ribbon-wide.png, вырезан из UI.png) —
+   позиционирован абсолютно и наполовину нависает над верхним обрезом книги, поэтому не участвует
+   в потоке (.stage по-прежнему не скроллится). cqw — от собственной ширины .spellbook (см. ниже). */
+.spellbook-header {
+  position: absolute;
+  top: -3.5cqw;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 22cqw;
+  aspect-ratio: 133 / 48;
+  background-image: url('/ui/headers/ribbon-wide.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: clamp(0.55rem, 1.3cqw, 0.85rem);
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* "Окно" в верхнюю полосу того же спрайта книги (спрайт растянут на всю условную высоту книги
+   через background-size, но сам элемент — только узкая полоса сверху) — рисуется НАД закладками
+   школ (z-index больше, чем у .school-select), чтобы книга визуально "перекрывала" верх вкладок,
+   а не наоборот. pointer-events: none — клики по этой зоне всё равно должны доходить до вкладок. */
+.spellbook-top-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9cqw;
+  background-image: url('/ui/spellbook-open.png');
+  background-size: 100% calc(100cqw * 167 / 273);
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Рамка страниц (цвет #bbad85 в спрайте) найдена по пикселям: левая страница x[14,125.5]
+   y[16,156], правая x[145.5,257] (из 273×167 исходника) — все четыре инсета ниже переведены
+   в cqw именно от ширины 273 (а не высоты 167), т.к. на 1cqw = 1% инлайн-размера .spellbook,
+   а книга везде масштабируется как единое целое (ширина и высота связаны aspect-ratio). */
+.spellbook-frame {
+  position: absolute;
+  inset: 5.86cqw 5.86cqw 4.03cqw 5.13cqw;
+  /* Доп. отступ ВНУТРИ рамки — иначе кнопки школ и список заклинаний вплотную упираются в саму
+     линию рамки. cqw (не %), чтобы отступ одинаково масштабировался с книгой на любом viewport. */
+  padding: 3cqw;
   display: grid;
-  grid-template-columns: minmax(16rem, 22rem) 1fr;
-  gap: 1.5rem;
-  width: min(100%, 52rem);
-  min-height: 30rem;
-  margin: 0 auto;
-  padding: 1.25rem;
-  background: var(--panel);
-  border: 2px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--line);
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10.33cqw;
+  row-gap: 1rem;
+  min-height: 0;
 }
 
 .spellbook-left {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  /* padding у .spellbook-frame даёт отступ только от внешних краёв разворота — у корешка (между
+     страницами) отступа не было, и список заклинаний доходил вплотную до линии рамки страницы. */
+  padding-right: 2.5cqw;
 }
 
+/* "Закладки" школ — торчат над верхним обрезом левой страницы (как книжные вкладки-стикеры).
+   Позиционированы от .spellbook-frame (не .spellbook-left!) — .spellbook-left живёт со своим
+   overflow-y:auto и обрезал бы вылезающие за его верх закладки, будь они внутри него. Grid-item
+   тут не участвует в раскладке колонок (position:absolute выводит из grid-потока, как из
+   обычного), поэтому spellbook-left/spellbook-right остаются ровно в 1-й/2-й колонке. */
 .school-select {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Уже, чем сама колонка (50% - половина корешка) — иначе крайняя вкладка налезает на ленту
+     "Выбери мага" (.spellbook-header), которая центрирована по всей книге и свисает ниже. */
+  width: calc(50% - 3.665cqw - 8cqw);
+  transform: translateY(-78%);
   display: flex;
   flex-direction: row;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  /* Ниже .spellbook-top-mask (z-index: 2) — книга перекрывает нижнюю часть вкладок, торчит
+     только верхняя (с иконкой), как будто вкладки заправлены под обложку. */
+  z-index: 1;
 }
 
+/* Цвет страницы (var(--paper)) — как будто вкладка вырезана из того же листа, что и страница
+   книги под ней; скруглены только верхние углы (классический вид вкладки-разделителя). Выше и
+   с меньшим внутренним отступом, чем раньше — компенсирует часть, перекрытую .spellbook-top-mask,
+   и оставляет иконке больше места. */
 .school-btn {
-  width: clamp(3rem, 7vw, 3.75rem);
-  height: clamp(3rem, 7vw, 3.75rem);
-  padding: 0.4rem;
-  background: var(--panel);
-  border: 2px solid var(--line);
-  border-radius: 0;
+  width: clamp(3.3rem, 7.5vw, 4.1rem);
+  height: clamp(4.6rem, 10.5vw, 5.8rem);
+  padding: 0.2rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0.6rem 0.6rem 0 0;
+  cursor: url('/ui/Cursor.png'), pointer;
   box-shadow: 3px 3px 0 var(--line);
-  cursor: pointer;
   transition:
     transform 0.08s ease,
     box-shadow 0.08s ease,
@@ -99,7 +153,7 @@
 }
 
 .school-btn:disabled {
-  cursor: default;
+  cursor: url('/ui/Cursor.png'), default;
   opacity: 0.5;
 }
 
@@ -108,26 +162,28 @@
   height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
+  position: relative;
+  top: -10px;
 }
 
 .spellbook-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
 
 .spellbook-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.6rem;
-  background: var(--paper);
-  border: 1px solid var(--line);
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.3rem;
+  background: transparent;
+  border: 2px solid transparent;
   border-radius: 0;
-  cursor: pointer;
-  text-align: left;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  cursor: url('/ui/Cursor.png'), pointer;
+  text-align: center;
   color: var(--ink);
 }
 
@@ -137,7 +193,6 @@
 
 .spellbook-item--active {
   border-color: var(--ember);
-  background: var(--panel);
 }
 
 .spellbook-item-icon {
@@ -146,6 +201,13 @@
   object-fit: contain;
   image-rendering: pixelated;
   flex-shrink: 0;
+}
+
+.spellbook-item-name {
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .spellbook-empty {
@@ -197,13 +259,31 @@
 
 .spellbook-right {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  /* Без этого спрайт-сын (spellbook-sprite) со своим фиксированным clamp-размером не давал
+     grid-колонке сжаться до честного 1fr — правая колонка становилась шире левой (и мага
+     тянуло к корешку вместо центра страницы), а левая (школы/заклинания) — уже, чем могла бы. */
+  min-width: 0;
+  min-height: 0;
+}
+
+.spellbook-mage-label {
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: clamp(0.7rem, 1.6cqw, 1rem);
+  letter-spacing: 0.08em;
+  color: var(--ember);
 }
 
 .spellbook-sprite {
   width: clamp(14rem, 30vw, 22rem);
   height: clamp(14rem, 30vw, 22rem);
+  max-width: 100%;
+  max-height: 100%;
+  flex-shrink: 1;
+  min-height: 0;
 }
 
 /* ---- Footer: keycap CTA ---- */
