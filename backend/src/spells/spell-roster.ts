@@ -251,9 +251,9 @@ export const SPELL_ROSTER: Spell[] = [
 
   // Arcane
   spell(
-    'arcane_mana_bolt',
-    'Mana Bolt',
-    'pulse',
+    'arcane_arcane_blast',
+    'Arcane Blast',
+    'blast',
     SpellSchool.Arcane,
     SpellType.Attack,
     SpellTier.Basic,

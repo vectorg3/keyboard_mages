@@ -38,3 +38,62 @@ body {
   outline: 2px solid var(--arcane);
   outline-offset: 3px;
 }
+
+/* ---- Shared keycap button: used by both Lobby ("Найти бой") and Match ("Вернуться на
+   главную") — kept global rather than duplicated in two component stylesheets. ---- */
+
+.keycap-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  padding: 1rem 2.5rem;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ember);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    border-color 0.08s ease;
+}
+
+.keycap-btn:hover:not(:disabled) {
+  border-color: var(--arcane);
+  box-shadow: 4px 4px 0 var(--arcane);
+}
+
+.keycap-btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--arcane);
+}
+
+.keycap-btn:disabled {
+  cursor: default;
+  opacity: 0.65;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ember);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .cursor {
+    animation: none;
+  }
+
+  .character-sprite:not(.character-sprite--attack) {
+    animation: none;
+    background-position: 0% 0%;
+  }
+
+  .vs--countdown {
+    animation: none;
+  }
+}

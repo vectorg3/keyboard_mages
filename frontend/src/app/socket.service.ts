@@ -19,6 +19,10 @@ export interface ActiveCastInfo {
   castId: string;
   spellId: string;
   deadline: number; // серверный timestamp, после которого каст сгорает по таймауту
+  /** Окно каста в мс, оставшееся С МОМЕНТА ПОЛУЧЕНИЯ cast_started (не полное серверное окно —
+   *  учитывает сетевую задержку между стартом каста на сервере и приходом события клиенту).
+   *  Разовое значение для CSS-анимации полоски таймера, не пересчитывается по тикам. */
+  windowMs: number;
 }
 
 export interface SpellResolvedInfo {
@@ -157,14 +161,19 @@ export class SocketService {
       if (!this.pendingSpellId) return; // не наш каст (не должно происходить, но на всякий случай)
       const spellId = this.pendingSpellId;
       this.pendingSpellId = null;
-      this.activeCast.set({ castId: payload.castId, spellId, deadline: payload.deadline });
+      const msUntilDeadline = payload.deadline - Date.now();
+      this.activeCast.set({
+        castId: payload.castId,
+        spellId,
+        deadline: payload.deadline,
+        windowMs: Math.max(0, msUntilDeadline),
+      });
       this.castProgress.set(0);
 
       // Подстраховка на случай, если игрок бросит печатать: сервер молча чистит cast по
       // таймауту в тикере (DuelService.tick), но клиенту об этом не сообщает — без этого окно
       // ввода зависло бы навсегда. Небольшой запас (50мс), чтобы реальный spell_resolved
       // (если он всё же придёт) успел закрыть окно первым.
-      const msUntilDeadline = payload.deadline - Date.now();
       setTimeout(
         () => {
           if (this.activeCast()?.castId === payload.castId) {

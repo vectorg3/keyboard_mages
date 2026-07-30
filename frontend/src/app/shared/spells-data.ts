@@ -127,9 +127,9 @@ export const SPELL_BUTTONS_BY_SCHOOL: Record<string, SpellButtonData[]> = {
   ],
   arcane: [
     {
-      id: 'arcane_mana_bolt',
-      name: 'Mana Bolt',
-      trigger: 'pulse',
+      id: 'arcane_arcane_blast',
+      name: 'Arcane Blast',
+      trigger: 'blast',
       tier: 1,
       description: 'Стабильный урон без побочных эффектов',
       damage: '6–8',

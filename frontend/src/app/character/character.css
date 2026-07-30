@@ -1,0 +1,1335 @@
+/* Классы .character/.character--foe навешаны на сам host (см. `host` в character.ts), поэтому
+   стилизуются через :host, а не через обычный класс-селектор — Angular не добавляет
+   ngcontent-атрибут на host-элемент, только :host его видит. */
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: clamp(9.5rem, 25vw, 14.5rem);
+}
+
+:host(.character--foe) {
+  justify-self: end;
+}
+
+.character-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.fighter-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  max-width: 100%;
+}
+
+.effect-icons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  min-height: 1.8rem;
+  pointer-events: none;
+}
+
+.effect-icon {
+  position: relative;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--line);
+}
+
+.effect-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.effect-icon-timer {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.4rem;
+  min-width: 0.9rem;
+  padding: 0 0.15rem;
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: 0.45rem;
+  line-height: 0.9rem;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+
+.hp-bar {
+  height: 20px;
+  border-radius: 0;
+  background: var(--line);
+  border: 3px solid var(--ink);
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  width: 100%;
+  background:
+    repeating-linear-gradient(90deg, rgba(34, 30, 48, 0.25) 0 1px, transparent 1px 7px),
+    linear-gradient(90deg, var(--hp), var(--hp-light));
+  transition: width 0.2s ease;
+}
+
+.character-sprite-wrap {
+  position: relative;
+}
+
+.floating-numbers {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.floating-number {
+  position: absolute;
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  color: var(--hp);
+  text-shadow: 2px 2px 0 var(--ink);
+  white-space: nowrap;
+  animation: float-up 1s ease-out forwards;
+}
+
+.floating-number--heal {
+  color: var(--heal);
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-2.5rem);
+  }
+}
+
+:host(.character--foe) .character-sprite {
+  transform: scaleX(-1);
+}
+
+.character-sprite--attack {
+  animation-timing-function: steps(1);
+  animation-iteration-count: 1;
+}
+
+.character-sprite--fire.character-sprite--attack {
+  background-image: url('/mage-sprites/fire/sprite-64x64px-8f-sheet-attack.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.64s;
+}
+
+.character-sprite--ice.character-sprite--attack {
+  background-image: url('/mage-sprites/frost/sprite-64x64px-10f-sheet-attack.png');
+  background-size: 500% 200%;
+  animation-name: sprite-attack-10f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--chaos.character-sprite--attack {
+  background-image: url('/mage-sprites/chaos/sprite-64x64px-10f-sheet-attack.png');
+  background-size: 500% 200%;
+  animation-name: sprite-attack-10f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--arcane.character-sprite--attack {
+  background-image: url('/mage-sprites/arcane/sprite-64x64px-10f-sheet-attack.png');
+  background-size: 500% 200%;
+  animation-name: sprite-attack-10f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--nature.character-sprite--attack {
+  background-image: url('/mage-sprites/nature/sprite-64x64px-10f-sheet-attack.png');
+  background-size: 500% 200%;
+  animation-name: sprite-attack-10f;
+  animation-duration: 0.8s;
+}
+
+@keyframes sprite-attack-8f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  12.5% {
+    background-position: 33.333% 0%;
+  }
+
+  25% {
+    background-position: 66.667% 0%;
+  }
+
+  37.5% {
+    background-position: 100% 0%;
+  }
+
+  50% {
+    background-position: 0% 100%;
+  }
+
+  62.5% {
+    background-position: 33.333% 100%;
+  }
+
+  75% {
+    background-position: 66.667% 100%;
+  }
+
+  87.5% {
+    background-position: 100% 100%;
+  }
+}
+
+/* Спрайт-эффект каста поверх ЦЕЛИ заклинания (себя — для баффов, соперника — для урона/дебаффов;
+   см. SPELL_VFX в spell-vfx-data.ts), независимо от sprite-attack выше на самом кастере. */
+.spell-vfx {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+  animation-timing-function: steps(1);
+  animation-iteration-count: 1;
+}
+
+:host(.character--foe) .spell-vfx {
+  transform: scaleX(-1);
+}
+
+/* fire_spark.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--fire_spark {
+  background-image: url('/spell-animations/fire/fire_spark.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* fire_ember_ward.png: 14 кадров 64×64, одна строка (896×64 итого). */
+.spell-vfx--fire_ember_ward {
+  background-image: url('/spell-animations/fire/fire_ember_ward.png');
+  background-size: 1400% 100%;
+  animation-name: spell-vfx-14f;
+}
+
+/* fire_blaze.png: 10 кадров 64×64, одна строка (640×64 итого). */
+.spell-vfx--fire_blaze {
+  background-image: url('/spell-animations/fire/fire_blaze.png');
+  background-size: 1000% 100%;
+  animation-name: spell-vfx-10f;
+}
+
+/* fire_phoenix_rebirth.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--fire_phoenix_rebirth {
+  background-image: url('/spell-animations/fire/fire_phoenix_rebirth.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* fire_inferno_storm.png: 20 кадров 64×64, одна строка (1280×64 итого). */
+.spell-vfx--fire_inferno_storm {
+  background-image: url('/spell-animations/fire/fire_inferno_storm.png');
+  background-size: 2000% 100%;
+  animation-name: spell-vfx-20f;
+}
+
+/* ice_frostbite.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--ice_frostbite {
+  background-image: url('/spell-animations/frost/ice_frostbite.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* ice_winters_grasp.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--ice_winters_grasp {
+  background-image: url('/spell-animations/frost/ice_winters_grasp.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* ice_ice_shard.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--ice_ice_shard {
+  background-image: url('/spell-animations/frost/ice_ice_shard.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* ice_frozen_armor.png: 8 кадров 64×64, одна строка (512×64 итого). */
+.spell-vfx--ice_frozen_armor {
+  background-image: url('/spell-animations/frost/ice_frozen_armor.png');
+  background-size: 800% 100%;
+  animation-name: spell-vfx-8f;
+}
+
+/* ice_blizzard.png: 18 кадров 64×64, одна строка (1152×64 итого). */
+.spell-vfx--ice_blizzard {
+  background-image: url('/spell-animations/frost/ice_blizzard.png');
+  background-size: 1800% 100%;
+  animation-name: spell-vfx-18f;
+}
+
+/* arcane_arcane_blast.png: 9 кадров 64×64, одна строка (576×64 итого). */
+.spell-vfx--arcane_arcane_blast {
+  background-image: url('/spell-animations/arcane/arcane_arcane_blast.png');
+  background-size: 900% 100%;
+  animation-name: spell-vfx-9f;
+}
+
+/* arcane_power_rune.png: 21 кадр 64×64, одна строка (1344×64 итого). */
+.spell-vfx--arcane_power_rune {
+  background-image: url('/spell-animations/arcane/arcane_power_rune.png');
+  background-size: 2100% 100%;
+  animation-name: spell-vfx-21f;
+}
+
+/* arcane_arcane_missile.png: 9 кадров 64×64, одна строка (576×64 итого). */
+.spell-vfx--arcane_arcane_missile {
+  background-image: url('/spell-animations/arcane/arcane_arcane_missile.png');
+  background-size: 900% 100%;
+  animation-name: spell-vfx-9f;
+}
+
+/* arcane_mirror_shield.png: 22 кадра 64×64, одна строка (1408×64 итого). */
+.spell-vfx--arcane_mirror_shield {
+  background-image: url('/spell-animations/arcane/arcane_mirror_shield.png');
+  background-size: 2200% 100%;
+  animation-name: spell-vfx-22f;
+}
+
+/* arcane_time_warp.png: 14 кадров 64×64, одна строка (896×64 итого). */
+.spell-vfx--arcane_time_warp {
+  background-image: url('/spell-animations/arcane/arcane_time_warp.png');
+  background-size: 1400% 100%;
+  animation-name: spell-vfx-14f;
+}
+
+/* arcane_spellbreaker.png: 23 кадра 64×64, одна строка (1472×64 итого). */
+.spell-vfx--arcane_spellbreaker {
+  background-image: url('/spell-animations/arcane/arcane_spellbreaker.png');
+  background-size: 2300% 100%;
+  animation-name: spell-vfx-23f;
+}
+
+/* chaos_chaos_bolt.png: 9 кадров 64×64, одна строка (576×64 итого). */
+.spell-vfx--chaos_chaos_bolt {
+  background-image: url('/spell-animations/chaos/chaos_chaos_bolt.png');
+  background-size: 900% 100%;
+  animation-name: spell-vfx-9f;
+}
+
+/* chaos_unstable_surge.png: 14 кадров 64×64, одна строка (896×64 итого). */
+.spell-vfx--chaos_unstable_surge {
+  background-image: url('/spell-animations/chaos/chaos_unstable_surge.png');
+  background-size: 1400% 100%;
+  animation-name: spell-vfx-14f;
+}
+
+/* chaos_entropy_veil.png: 18 кадров 64×64, одна строка (1152×64 итого). */
+.spell-vfx--chaos_entropy_veil {
+  background-image: url('/spell-animations/chaos/chaos_entropy_veil.png');
+  background-size: 1800% 100%;
+  animation-name: spell-vfx-18f;
+}
+
+/* chaos_corruption.png: 15 кадров 64×64, одна строка (960×64 итого). */
+.spell-vfx--chaos_corruption {
+  background-image: url('/spell-animations/chaos/chaos_corruption.png');
+  background-size: 1500% 100%;
+  animation-name: spell-vfx-15f;
+}
+
+/* chaos_void_collapse.png: 19 кадров 64×64, одна строка (1216×64 итого). */
+.spell-vfx--chaos_void_collapse {
+  background-image: url('/spell-animations/chaos/chaos_void_collapse.png');
+  background-size: 1900% 100%;
+  animation-name: spell-vfx-19f;
+}
+
+/* nature_vine_whip.png: 11 кадров 64×64, одна строка (704×64 итого). */
+.spell-vfx--nature_vine_whip {
+  background-image: url('/spell-animations/nature/nature_vine_whip.png');
+  background-size: 1100% 100%;
+  animation-name: spell-vfx-11f;
+}
+
+/* nature_bark_skin.png: 9 кадров 64×64, одна строка (576×64 итого). */
+.spell-vfx--nature_bark_skin {
+  background-image: url('/spell-animations/nature/nature_bark_skin.png');
+  background-size: 900% 100%;
+  animation-name: spell-vfx-9f;
+}
+
+/* nature_entangle.png: 12 кадров 64×64, одна строка (768×64 итого). */
+.spell-vfx--nature_entangle {
+  background-image: url('/spell-animations/nature/nature_entangle.png');
+  background-size: 1200% 100%;
+  animation-name: spell-vfx-12f;
+}
+
+/* nature_regrowth.png: 15 кадров 64×64, одна строка (960×64 итого). */
+.spell-vfx--nature_regrowth {
+  background-image: url('/spell-animations/nature/nature_regrowth.png');
+  background-size: 1500% 100%;
+  animation-name: spell-vfx-15f;
+}
+
+/* nature_natures_fury.png: 13 кадров 64×64, одна строка (832×64 итого). */
+.spell-vfx--nature_natures_fury {
+  background-image: url('/spell-animations/nature/nature_natures_fury.png');
+  background-size: 1300% 100%;
+  animation-name: spell-vfx-13f;
+}
+
+/* nature_vampiric_roots.png: 12 кадров 64×64, одна строка (768×64 итого). */
+.spell-vfx--nature_vampiric_roots {
+  background-image: url('/spell-animations/nature/nature_vampiric_roots.png');
+  background-size: 1200% 100%;
+  animation-name: spell-vfx-12f;
+}
+
+@keyframes spell-vfx-8f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  12.5% {
+    background-position: 14.286% 0%;
+  }
+
+  25% {
+    background-position: 28.571% 0%;
+  }
+
+  37.5% {
+    background-position: 42.857% 0%;
+  }
+
+  50% {
+    background-position: 57.143% 0%;
+  }
+
+  62.5% {
+    background-position: 71.429% 0%;
+  }
+
+  75% {
+    background-position: 85.714% 0%;
+  }
+
+  87.5% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-10f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  10% {
+    background-position: 11.111% 0%;
+  }
+
+  20% {
+    background-position: 22.222% 0%;
+  }
+
+  30% {
+    background-position: 33.333% 0%;
+  }
+
+  40% {
+    background-position: 44.444% 0%;
+  }
+
+  50% {
+    background-position: 55.556% 0%;
+  }
+
+  60% {
+    background-position: 66.667% 0%;
+  }
+
+  70% {
+    background-position: 77.778% 0%;
+  }
+
+  80% {
+    background-position: 88.889% 0%;
+  }
+
+  90% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-14f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  7.143% {
+    background-position: 7.692% 0%;
+  }
+
+  14.286% {
+    background-position: 15.385% 0%;
+  }
+
+  21.429% {
+    background-position: 23.077% 0%;
+  }
+
+  28.571% {
+    background-position: 30.769% 0%;
+  }
+
+  35.714% {
+    background-position: 38.462% 0%;
+  }
+
+  42.857% {
+    background-position: 46.154% 0%;
+  }
+
+  50% {
+    background-position: 53.846% 0%;
+  }
+
+  57.143% {
+    background-position: 61.538% 0%;
+  }
+
+  64.286% {
+    background-position: 69.231% 0%;
+  }
+
+  71.429% {
+    background-position: 76.923% 0%;
+  }
+
+  78.571% {
+    background-position: 84.615% 0%;
+  }
+
+  85.714% {
+    background-position: 92.308% 0%;
+  }
+
+  92.857% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-20f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  5% {
+    background-position: 5.263% 0%;
+  }
+
+  10% {
+    background-position: 10.526% 0%;
+  }
+
+  15% {
+    background-position: 15.789% 0%;
+  }
+
+  20% {
+    background-position: 21.053% 0%;
+  }
+
+  25% {
+    background-position: 26.316% 0%;
+  }
+
+  30% {
+    background-position: 31.579% 0%;
+  }
+
+  35% {
+    background-position: 36.842% 0%;
+  }
+
+  40% {
+    background-position: 42.105% 0%;
+  }
+
+  45% {
+    background-position: 47.368% 0%;
+  }
+
+  50% {
+    background-position: 52.632% 0%;
+  }
+
+  55% {
+    background-position: 57.895% 0%;
+  }
+
+  60% {
+    background-position: 63.158% 0%;
+  }
+
+  65% {
+    background-position: 68.421% 0%;
+  }
+
+  70% {
+    background-position: 73.684% 0%;
+  }
+
+  75% {
+    background-position: 78.947% 0%;
+  }
+
+  80% {
+    background-position: 84.211% 0%;
+  }
+
+  85% {
+    background-position: 89.474% 0%;
+  }
+
+  90% {
+    background-position: 94.737% 0%;
+  }
+}
+
+@keyframes spell-vfx-9f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  11.111% {
+    background-position: 12.5% 0%;
+  }
+
+  22.222% {
+    background-position: 25% 0%;
+  }
+
+  33.333% {
+    background-position: 37.5% 0%;
+  }
+
+  44.444% {
+    background-position: 50% 0%;
+  }
+
+  55.556% {
+    background-position: 62.5% 0%;
+  }
+
+  66.667% {
+    background-position: 75% 0%;
+  }
+
+  77.778% {
+    background-position: 87.5% 0%;
+  }
+
+  88.889% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-11f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  9.091% {
+    background-position: 10% 0%;
+  }
+
+  18.182% {
+    background-position: 20% 0%;
+  }
+
+  27.273% {
+    background-position: 30% 0%;
+  }
+
+  36.364% {
+    background-position: 40% 0%;
+  }
+
+  45.455% {
+    background-position: 50% 0%;
+  }
+
+  54.545% {
+    background-position: 60% 0%;
+  }
+
+  63.636% {
+    background-position: 70% 0%;
+  }
+
+  72.727% {
+    background-position: 80% 0%;
+  }
+
+  81.818% {
+    background-position: 90% 0%;
+  }
+
+  90.909% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-12f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  8.333% {
+    background-position: 9.091% 0%;
+  }
+
+  16.667% {
+    background-position: 18.182% 0%;
+  }
+
+  25% {
+    background-position: 27.273% 0%;
+  }
+
+  33.333% {
+    background-position: 36.364% 0%;
+  }
+
+  41.667% {
+    background-position: 45.455% 0%;
+  }
+
+  50% {
+    background-position: 54.545% 0%;
+  }
+
+  58.333% {
+    background-position: 63.636% 0%;
+  }
+
+  66.667% {
+    background-position: 72.727% 0%;
+  }
+
+  75% {
+    background-position: 81.818% 0%;
+  }
+
+  83.333% {
+    background-position: 90.909% 0%;
+  }
+
+  91.667% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-13f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  7.692% {
+    background-position: 8.333% 0%;
+  }
+
+  15.385% {
+    background-position: 16.667% 0%;
+  }
+
+  23.077% {
+    background-position: 25% 0%;
+  }
+
+  30.769% {
+    background-position: 33.333% 0%;
+  }
+
+  38.462% {
+    background-position: 41.667% 0%;
+  }
+
+  46.154% {
+    background-position: 50% 0%;
+  }
+
+  53.846% {
+    background-position: 58.333% 0%;
+  }
+
+  61.538% {
+    background-position: 66.667% 0%;
+  }
+
+  69.231% {
+    background-position: 75% 0%;
+  }
+
+  76.923% {
+    background-position: 83.333% 0%;
+  }
+
+  84.615% {
+    background-position: 91.667% 0%;
+  }
+
+  92.308% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-15f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  6.667% {
+    background-position: 7.143% 0%;
+  }
+
+  13.333% {
+    background-position: 14.286% 0%;
+  }
+
+  20% {
+    background-position: 21.429% 0%;
+  }
+
+  26.667% {
+    background-position: 28.571% 0%;
+  }
+
+  33.333% {
+    background-position: 35.714% 0%;
+  }
+
+  40% {
+    background-position: 42.857% 0%;
+  }
+
+  46.667% {
+    background-position: 50% 0%;
+  }
+
+  53.333% {
+    background-position: 57.143% 0%;
+  }
+
+  60% {
+    background-position: 64.286% 0%;
+  }
+
+  66.667% {
+    background-position: 71.429% 0%;
+  }
+
+  73.333% {
+    background-position: 78.571% 0%;
+  }
+
+  80% {
+    background-position: 85.714% 0%;
+  }
+
+  86.667% {
+    background-position: 92.857% 0%;
+  }
+
+  93.333% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-18f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  5.556% {
+    background-position: 5.882% 0%;
+  }
+
+  11.111% {
+    background-position: 11.765% 0%;
+  }
+
+  16.667% {
+    background-position: 17.647% 0%;
+  }
+
+  22.222% {
+    background-position: 23.529% 0%;
+  }
+
+  27.778% {
+    background-position: 29.412% 0%;
+  }
+
+  33.333% {
+    background-position: 35.294% 0%;
+  }
+
+  38.889% {
+    background-position: 41.176% 0%;
+  }
+
+  44.444% {
+    background-position: 47.059% 0%;
+  }
+
+  50% {
+    background-position: 52.941% 0%;
+  }
+
+  55.556% {
+    background-position: 58.824% 0%;
+  }
+
+  61.111% {
+    background-position: 64.706% 0%;
+  }
+
+  66.667% {
+    background-position: 70.588% 0%;
+  }
+
+  72.222% {
+    background-position: 76.471% 0%;
+  }
+
+  77.778% {
+    background-position: 82.353% 0%;
+  }
+
+  83.333% {
+    background-position: 88.235% 0%;
+  }
+
+  88.889% {
+    background-position: 94.118% 0%;
+  }
+
+  94.444% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-19f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  5.263% {
+    background-position: 5.556% 0%;
+  }
+
+  10.526% {
+    background-position: 11.111% 0%;
+  }
+
+  15.789% {
+    background-position: 16.667% 0%;
+  }
+
+  21.053% {
+    background-position: 22.222% 0%;
+  }
+
+  26.316% {
+    background-position: 27.778% 0%;
+  }
+
+  31.579% {
+    background-position: 33.333% 0%;
+  }
+
+  36.842% {
+    background-position: 38.889% 0%;
+  }
+
+  42.105% {
+    background-position: 44.444% 0%;
+  }
+
+  47.368% {
+    background-position: 50% 0%;
+  }
+
+  52.632% {
+    background-position: 55.556% 0%;
+  }
+
+  57.895% {
+    background-position: 61.111% 0%;
+  }
+
+  63.158% {
+    background-position: 66.667% 0%;
+  }
+
+  68.421% {
+    background-position: 72.222% 0%;
+  }
+
+  73.684% {
+    background-position: 77.778% 0%;
+  }
+
+  78.947% {
+    background-position: 83.333% 0%;
+  }
+
+  84.211% {
+    background-position: 88.889% 0%;
+  }
+
+  89.474% {
+    background-position: 94.444% 0%;
+  }
+
+  94.737% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-21f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  4.762% {
+    background-position: 5% 0%;
+  }
+
+  9.524% {
+    background-position: 10% 0%;
+  }
+
+  14.286% {
+    background-position: 15% 0%;
+  }
+
+  19.048% {
+    background-position: 20% 0%;
+  }
+
+  23.81% {
+    background-position: 25% 0%;
+  }
+
+  28.571% {
+    background-position: 30% 0%;
+  }
+
+  33.333% {
+    background-position: 35% 0%;
+  }
+
+  38.095% {
+    background-position: 40% 0%;
+  }
+
+  42.857% {
+    background-position: 45% 0%;
+  }
+
+  47.619% {
+    background-position: 50% 0%;
+  }
+
+  52.381% {
+    background-position: 55% 0%;
+  }
+
+  57.143% {
+    background-position: 60% 0%;
+  }
+
+  61.905% {
+    background-position: 65% 0%;
+  }
+
+  66.667% {
+    background-position: 70% 0%;
+  }
+
+  71.429% {
+    background-position: 75% 0%;
+  }
+
+  76.19% {
+    background-position: 80% 0%;
+  }
+
+  80.952% {
+    background-position: 85% 0%;
+  }
+
+  85.714% {
+    background-position: 90% 0%;
+  }
+
+  90.476% {
+    background-position: 95% 0%;
+  }
+
+  95.238% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-22f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  4.545% {
+    background-position: 4.762% 0%;
+  }
+
+  9.091% {
+    background-position: 9.524% 0%;
+  }
+
+  13.636% {
+    background-position: 14.286% 0%;
+  }
+
+  18.182% {
+    background-position: 19.048% 0%;
+  }
+
+  22.727% {
+    background-position: 23.81% 0%;
+  }
+
+  27.273% {
+    background-position: 28.571% 0%;
+  }
+
+  31.818% {
+    background-position: 33.333% 0%;
+  }
+
+  36.364% {
+    background-position: 38.095% 0%;
+  }
+
+  40.909% {
+    background-position: 42.857% 0%;
+  }
+
+  45.455% {
+    background-position: 47.619% 0%;
+  }
+
+  50% {
+    background-position: 52.381% 0%;
+  }
+
+  54.545% {
+    background-position: 57.143% 0%;
+  }
+
+  59.091% {
+    background-position: 61.905% 0%;
+  }
+
+  63.636% {
+    background-position: 66.667% 0%;
+  }
+
+  68.182% {
+    background-position: 71.429% 0%;
+  }
+
+  72.727% {
+    background-position: 76.19% 0%;
+  }
+
+  77.273% {
+    background-position: 80.952% 0%;
+  }
+
+  81.818% {
+    background-position: 85.714% 0%;
+  }
+
+  86.364% {
+    background-position: 90.476% 0%;
+  }
+
+  90.909% {
+    background-position: 95.238% 0%;
+  }
+
+  95.455% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes spell-vfx-23f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  4.348% {
+    background-position: 4.545% 0%;
+  }
+
+  8.696% {
+    background-position: 9.091% 0%;
+  }
+
+  13.043% {
+    background-position: 13.636% 0%;
+  }
+
+  17.391% {
+    background-position: 18.182% 0%;
+  }
+
+  21.739% {
+    background-position: 22.727% 0%;
+  }
+
+  26.087% {
+    background-position: 27.273% 0%;
+  }
+
+  30.435% {
+    background-position: 31.818% 0%;
+  }
+
+  34.783% {
+    background-position: 36.364% 0%;
+  }
+
+  39.13% {
+    background-position: 40.909% 0%;
+  }
+
+  43.478% {
+    background-position: 45.455% 0%;
+  }
+
+  47.826% {
+    background-position: 50% 0%;
+  }
+
+  52.174% {
+    background-position: 54.545% 0%;
+  }
+
+  56.522% {
+    background-position: 59.091% 0%;
+  }
+
+  60.87% {
+    background-position: 63.636% 0%;
+  }
+
+  65.217% {
+    background-position: 68.182% 0%;
+  }
+
+  69.565% {
+    background-position: 72.727% 0%;
+  }
+
+  73.913% {
+    background-position: 77.273% 0%;
+  }
+
+  78.261% {
+    background-position: 81.818% 0%;
+  }
+
+  82.609% {
+    background-position: 86.364% 0%;
+  }
+
+  86.957% {
+    background-position: 90.909% 0%;
+  }
+
+  91.304% {
+    background-position: 95.455% 0%;
+  }
+
+  95.652% {
+    background-position: 100% 0%;
+  }
+}
+
+@keyframes sprite-attack-10f {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  10% {
+    background-position: 25% 0%;
+  }
+
+  20% {
+    background-position: 50% 0%;
+  }
+
+  30% {
+    background-position: 75% 0%;
+  }
+
+  40% {
+    background-position: 100% 0%;
+  }
+
+  50% {
+    background-position: 0% 100%;
+  }
+
+  60% {
+    background-position: 25% 100%;
+  }
+
+  70% {
+    background-position: 50% 100%;
+  }
+
+  80% {
+    background-position: 75% 100%;
+  }
+
+  90% {
+    background-position: 100% 100%;
+  }
+}

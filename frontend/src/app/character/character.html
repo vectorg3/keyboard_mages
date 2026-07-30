@@ -1,0 +1,39 @@
+<div class="character-status">
+  <span class="fighter-name">{{ name() }}</span>
+  <div class="effect-icons" aria-hidden="true">
+    @for (fx of effects(); track fx.id) {
+      <div class="effect-icon" [title]="effectSpellName(fx.sourceSpellId)">
+        <img [src]="spellIconPath(fx.sourceSpellId)" [alt]="effectSpellName(fx.sourceSpellId)" />
+        <span class="effect-icon-timer">{{ formatCooldown(fx.remainingMs) }}</span>
+      </div>
+    }
+  </div>
+  <div class="hp-bar"><div class="hp-fill" [style.width.%]="hpPercent()"></div></div>
+</div>
+<div class="character-sprite-wrap">
+  <div class="floating-numbers" aria-hidden="true">
+    @for (n of floatingNumbers(); track n.id) {
+      <span class="floating-number" [class.floating-number--heal]="n.kind === 'heal'">{{ n.text }}</span>
+    }
+  </div>
+  <div
+    class="character-sprite"
+    [class.character-sprite--fire]="mageType() === 'fire'"
+    [class.character-sprite--ice]="mageType() === 'ice'"
+    [class.character-sprite--chaos]="mageType() === 'chaos'"
+    [class.character-sprite--arcane]="mageType() === 'arcane'"
+    [class.character-sprite--nature]="mageType() === 'nature'"
+    [class.character-sprite--attack]="attacking()"
+    (animationend)="attackAnimationEnd.emit()"
+    aria-hidden="true"
+  ></div>
+  @if (vfxSpellId(); as vfx) {
+    <div
+      class="spell-vfx"
+      [class]="'spell-vfx--' + vfx"
+      [style.animationDuration.ms]="vfxDurationMs()"
+      (animationend)="vfxAnimationEnd.emit()"
+      aria-hidden="true"
+    ></div>
+  }
+</div>

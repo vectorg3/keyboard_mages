@@ -1,0 +1,102 @@
+@if (socket.match(); as match) {
+  <section class="content" aria-live="polite">
+    <div class="match">
+      <h2 class="match-title">{{ socket.matchStarted() ? 'Бой начался' : 'Соперник найден' }}</h2>
+      <p class="match-id">MATCH&nbsp;<span>{{ match.matchId }}</span></p>
+    </div>
+  </section>
+
+  <div class="scene" aria-label="Арена">
+    <app-character
+      side="you"
+      name="Вы"
+      [mageType]="youMageType()"
+      [hpPercent]="youHpPercent()"
+      [effects]="youEffects()"
+      [floatingNumbers]="youFloatingNumbers()"
+      [attacking]="youAttacking()"
+      (attackAnimationEnd)="onAttackAnimationEnd('you')"
+      [vfxSpellId]="youVfx()"
+      (vfxAnimationEnd)="onVfxAnimationEnd('you')"
+    />
+
+    <span class="vs" [class.vs--countdown]="!socket.matchStarted()">
+      {{ socket.matchStarted() ? 'VS' : countdownSeconds() }}
+    </span>
+
+    <app-character
+      side="foe"
+      [name]="match.opponentId"
+      [mageType]="foeMageType()"
+      [hpPercent]="foeHpPercent()"
+      [effects]="foeEffects()"
+      [floatingNumbers]="foeFloatingNumbers()"
+      [attacking]="foeAttacking()"
+      (attackAnimationEnd)="onAttackAnimationEnd('foe')"
+      [vfxSpellId]="foeVfx()"
+      (vfxAnimationEnd)="onVfxAnimationEnd('foe')"
+    />
+  </div>
+
+  @if (youSpells().length) {
+    <div class="spell-bar" aria-label="Заклинания">
+      @for (spellBtn of youSpells(); track spellBtn.id; let i = $index) {
+        <button
+          type="button"
+          class="spell-btn"
+          [class.spell-btn--tier-1]="spellBtn.tier === 1"
+          [class.spell-btn--tier-2]="spellBtn.tier === 2"
+          [class.spell-btn--tier-3]="spellBtn.tier === 3"
+          [class.spell-btn--active]="socket.activeCast()?.spellId === spellBtn.id"
+          [disabled]="!socket.matchStarted() || !!socket.activeCast() || youCooldowns()[spellBtn.id] !== undefined"
+          [title]="spellBtn.name"
+          (click)="castSpellByIndex(i)"
+        >
+          <img
+            class="spell-btn-icon"
+            [src]="spellIconPath(spellBtn.id)"
+            [alt]="spellBtn.name"
+          />
+          <span class="spell-btn-key">{{ i + 1 }}</span>
+          @if (youCooldowns()[spellBtn.id]; as remainingMs) {
+            <div class="spell-btn-cooldown" aria-hidden="true">
+              <span class="spell-btn-cooldown-timer">{{ formatCooldown(remainingMs) }}</span>
+            </div>
+          }
+        </button>
+      }
+    </div>
+  }
+
+  @if (socket.castRejected(); as reason) {
+    <p class="cast-rejected">{{ reason }}</p>
+  }
+
+  @if (socket.activeCast(); as cast) {
+    <div class="cast-window" aria-live="assertive">
+      <div class="cast-window-bar-track">
+        <div class="cast-window-bar" [style.animationDuration.ms]="cast.windowMs"></div>
+      </div>
+      <div class="cast-window-chars">
+        @for (ch of (activeCastTrigger() ?? '').split(''); track $index) {
+          <span class="cast-char" [class.cast-char--done]="$index < typedCount()">{{ ch }}</span>
+        }
+      </div>
+    </div>
+  }
+}
+
+@if (socket.matchResult(); as result) {
+  <div class="match-result-backdrop">
+    <div class="match-result">
+      <h2
+        class="match-result-title"
+        [class.match-result-title--win]="result === 'win'"
+        [class.match-result-title--loss]="result === 'loss'"
+      >
+        {{ result === 'win' ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ' }}
+      </h2>
+      <button type="button" class="keycap-btn" (click)="returnToMenu()">Вернуться на главную</button>
+    </div>
+  </div>
+}
