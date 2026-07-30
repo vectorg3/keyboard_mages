@@ -13,6 +13,9 @@ import { DuelService, MAX_HP } from './duel.service';
 import { MatchState } from './duel.types';
 
 const TICK_INTERVAL_MS = 300; // раздел 6.4: heartbeat раз в 250-500мс на матч
+// Задержка перед удалением завершённого матча из памяти — запас на случай, если клиент ещё
+// не успел обработать/забрать match_ended (не про реконнект: грейс-периода на него нет).
+const MATCH_CLEANUP_DELAY_MS = 10_000;
 
 interface JoinPayload {
   matchId: string;
@@ -109,6 +112,10 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('cast_started', {
       castId: result.cast.castId,
       deadline: result.cast.deadline,
+      // Длительность окна — считаем на сервере (startedAt/deadline тут в одних и тех же
+      // часах), а не на клиенте как deadline - Date.now(): часы браузера и сервера не
+      // синхронизированы, и на деплое (не на localhost) это давало заметно укороченное окно.
+      windowMs: result.cast.deadline - result.cast.startedAt,
     });
   }
 
@@ -212,6 +219,7 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!match.finishedAt) return false;
     this.server.to(matchId).emit('match_ended', { winnerId: match.winnerId });
     this.stopHeartbeat(matchId);
+    setTimeout(() => this.duelService.removeMatch(matchId), MATCH_CLEANUP_DELAY_MS);
     return true;
   }
 

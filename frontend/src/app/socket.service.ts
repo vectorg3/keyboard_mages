@@ -158,33 +158,38 @@ export class SocketService {
       this.countdownMs.set(null);
     });
 
-    this.socket.on('cast_started', (payload: { castId: string; deadline: number }) => {
-      if (!this.pendingSpellId) return; // не наш каст (не должно происходить, но на всякий случай)
-      const spellId = this.pendingSpellId;
-      this.pendingSpellId = null;
-      const msUntilDeadline = payload.deadline - Date.now();
-      this.activeCast.set({
-        castId: payload.castId,
-        spellId,
-        deadline: payload.deadline,
-        windowMs: Math.max(0, msUntilDeadline),
-      });
-      this.castProgress.set(0);
+    this.socket.on(
+      'cast_started',
+      (payload: { castId: string; deadline: number; windowMs: number }) => {
+        if (!this.pendingSpellId) return; // не наш каст (не должно происходить, но на всякий случай)
+        const spellId = this.pendingSpellId;
+        this.pendingSpellId = null;
+        this.activeCast.set({
+          castId: payload.castId,
+          spellId,
+          deadline: payload.deadline,
+          // Приходит с сервера уже готовым (startedAt/deadline в одних часах) — раньше
+          // считали как payload.deadline - Date.now(), но часы браузера и сервера не
+          // синхронизированы, из-за чего на деплое (не на localhost) окно казалось короче.
+          windowMs: payload.windowMs,
+        });
+        this.castProgress.set(0);
 
-      // Подстраховка на случай, если игрок бросит печатать: сервер молча чистит cast по
-      // таймауту в тикере (DuelService.tick), но клиенту об этом не сообщает — без этого окно
-      // ввода зависло бы навсегда. Небольшой запас (50мс), чтобы реальный spell_resolved
-      // (если он всё же придёт) успел закрыть окно первым.
-      setTimeout(
-        () => {
-          if (this.activeCast()?.castId === payload.castId) {
-            this.activeCast.set(null);
-            this.castProgress.set(0);
-          }
-        },
-        Math.max(0, msUntilDeadline) + 50,
-      );
-    });
+        // Подстраховка на случай, если игрок бросит печатать: сервер молча чистит cast по
+        // таймауту в тикере (DuelService.tick), но клиенту об этом не сообщает — без этого окно
+        // ввода зависло бы навсегда. Небольшой запас (50мс), чтобы реальный spell_resolved
+        // (если он всё же придёт) успел закрыть окно первым.
+        setTimeout(
+          () => {
+            if (this.activeCast()?.castId === payload.castId) {
+              this.activeCast.set(null);
+              this.castProgress.set(0);
+            }
+          },
+          payload.windowMs + 50,
+        );
+      },
+    );
 
     this.socket.on('cast_rejected', (payload: { reason: string }) => {
       this.pendingSpellId = null;
