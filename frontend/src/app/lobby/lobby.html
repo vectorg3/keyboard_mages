@@ -1,91 +1,73 @@
-<div class="lobby-row">
-  <aside class="howto" aria-label="Как играть">
-    <h3 class="howto-title">Как играть</h3>
-    <ol class="howto-steps">
-      <li>Выбери школу мага.</li>
-      <li>Посмотри заклинания школы в книге.</li>
-      <li>Введи ник, жми «Найти бой».</li>
-      <li>В бою жми цифру спелла и печатай его триггер.</li>
-      <li>Не успел — заклинание сгорит.</li>
-      <li>Обнули HP соперника — победа!</li>
-    </ol>
-  </aside>
+<section class="spellbook" aria-label="Выбор школы и заклинаний">
+  <div class="spellbook-header">Выбери мага</div>
+  <div class="spellbook-top-mask" aria-hidden="true"></div>
+  <div class="spellbook-frame">
+    <div class="school-select" aria-label="Выбор школы">
+      @for (school of schoolOptions; track school.id) {
+        <button
+          type="button"
+          class="school-btn"
+          [class.school-btn--active]="youMageType() === school.id"
+          [disabled]="socket.status() !== 'idle'"
+          [title]="school.label"
+          (click)="selectSchool(school.id)"
+        >
+          <img class="school-btn-icon" [src]="'/school-icons/' + school.icon + '.png'" [alt]="school.label" />
+        </button>
+      }
+    </div>
 
-  <section class="spellbook" aria-label="Выбор школы и заклинаний">
-    <div class="spellbook-header">Выбери мага</div>
-    <div class="spellbook-top-mask" aria-hidden="true"></div>
-    <div class="spellbook-frame">
-      <div class="school-select" aria-label="Выбор школы">
-        @for (school of schoolOptions; track school.id) {
+    <div class="spellbook-left">
+      <div class="spellbook-list">
+        @for (spell of youSpells(); track spell.id) {
           <button
             type="button"
-            class="school-btn"
-            [class.school-btn--active]="youMageType() === school.id"
-            [disabled]="socket.status() !== 'idle'"
-            [title]="school.label"
-            (click)="selectSchool(school.id)"
+            class="spellbook-item"
+            [class.spellbook-item--active]="selectedSpellId() === spell.id"
+            (click)="selectSpellInfo(spell.id)"
           >
-            <img
-              class="school-btn-icon"
-              [src]="'/school-icons/' + school.icon + '.png'"
-              [alt]="school.label"
-            />
+            <img class="spellbook-item-icon" [src]="spellIconPath(spell.id)" [alt]="spell.name" />
+            <span class="spellbook-item-name">{{ spell.name }}</span>
           </button>
+        } @empty {
+          <p class="spellbook-empty">Для этой школы пока нет заклинаний.</p>
         }
       </div>
 
-      <div class="spellbook-left">
-        <div class="spellbook-list">
-          @for (spell of youSpells(); track spell.id) {
-            <button
-              type="button"
-              class="spellbook-item"
-              [class.spellbook-item--active]="selectedSpellId() === spell.id"
-              (click)="selectSpellInfo(spell.id)"
-            >
-              <img class="spellbook-item-icon" [src]="spellIconPath(spell.id)" [alt]="spell.name" />
-              <span class="spellbook-item-name">{{ spell.name }}</span>
-            </button>
-          } @empty {
-            <p class="spellbook-empty">Для этой школы пока нет заклинаний.</p>
-          }
+      @if (selectedSpell(); as spell) {
+        <div class="spellbook-details">
+          <h3 class="spellbook-details-name">{{ spell.name }}</h3>
+          <p class="spellbook-details-description">{{ spell.description }}</p>
+          <dl class="spellbook-details-stats">
+            @if (spell.damage) {
+              <dt>Урон</dt>
+              <dd>{{ spell.damage }}</dd>
+            }
+            @if (spell.effect) {
+              <dt>Эффект</dt>
+              <dd>{{ spell.effect }}</dd>
+            }
+            <dt>Восстановление</dt>
+            <dd>{{ spell.cooldownSec }} сек</dd>
+          </dl>
         </div>
-
-        @if (selectedSpell(); as spell) {
-          <div class="spellbook-details">
-            <h3 class="spellbook-details-name">{{ spell.name }}</h3>
-            <p class="spellbook-details-description">{{ spell.description }}</p>
-            <dl class="spellbook-details-stats">
-              @if (spell.damage) {
-                <dt>Урон</dt>
-                <dd>{{ spell.damage }}</dd>
-              }
-              @if (spell.effect) {
-                <dt>Эффект</dt>
-                <dd>{{ spell.effect }}</dd>
-              }
-              <dt>Восстановление</dt>
-              <dd>{{ spell.cooldownSec }} сек</dd>
-            </dl>
-          </div>
-        }
-      </div>
-
-      <div class="spellbook-right">
-        <span class="spellbook-mage-label">{{ youMageLabel() }}</span>
-        <div
-          class="character-sprite spellbook-sprite"
-          [class.character-sprite--fire]="youMageType() === 'fire'"
-          [class.character-sprite--ice]="youMageType() === 'ice'"
-          [class.character-sprite--chaos]="youMageType() === 'chaos'"
-          [class.character-sprite--arcane]="youMageType() === 'arcane'"
-          [class.character-sprite--nature]="youMageType() === 'nature'"
-          aria-hidden="true"
-        ></div>
-      </div>
+      }
     </div>
-  </section>
-</div>
+
+    <div class="spellbook-right">
+      <span class="spellbook-mage-label">{{ youMageLabel() }}</span>
+      <div
+        class="character-sprite spellbook-sprite"
+        [class.character-sprite--fire]="youMageType() === 'fire'"
+        [class.character-sprite--ice]="youMageType() === 'ice'"
+        [class.character-sprite--chaos]="youMageType() === 'chaos'"
+        [class.character-sprite--arcane]="youMageType() === 'arcane'"
+        [class.character-sprite--nature]="youMageType() === 'nature'"
+        aria-hidden="true"
+      ></div>
+    </div>
+  </div>
+</section>
 
 <footer class="footer">
   <input
