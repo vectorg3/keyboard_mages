@@ -14,7 +14,10 @@ import { MatchmakingService } from './matchmaking.service';
 interface FindMatchPayload {
   playerId: string;
   school: SpellSchool;
+  nickname: string;
 }
+
+const MAX_NICKNAME_LENGTH = 20;
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class MatchmakingGateway implements OnGatewayDisconnect {
@@ -33,9 +36,15 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: FindMatchPayload,
   ): void {
+    // Ник обязателен на клиенте (кнопка поиска заблокирована без него), но клиенту нельзя
+    // доверять — подчищаем на границе на случай, если запрос пришёл в обход UI.
+    const nickname = (payload.nickname ?? '').trim().slice(0, MAX_NICKNAME_LENGTH);
+    if (!nickname) return;
+
     const match = this.matchmakingService.enqueue(
       payload.playerId,
       payload.school,
+      nickname,
     );
     if (!match) {
       this.waitingSockets.set(payload.playerId, client);
@@ -59,6 +68,7 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
         playerId,
         opponentId,
         opponentSchool: match.players[opponentId].school,
+        opponentNickname: match.players[opponentId].nickname,
       });
     }
   }

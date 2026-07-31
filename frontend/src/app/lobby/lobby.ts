@@ -38,7 +38,15 @@ export class Lobby {
     () => this.youSpells().find((s) => s.id === this.selectedSpellId()) ?? null,
   );
 
+  /** Кнопка поиска боя недоступна без ника — раздел про обязательность ника перед поиском. */
+  protected readonly canFindMatch = computed(() => this.socket.nickname().trim().length > 0);
+
+  onNicknameInput(event: Event): void {
+    this.socket.setNickname((event.target as HTMLInputElement).value);
+  }
+
   onFindMatch(): void {
+    if (!this.canFindMatch()) return;
     this.socket.findMatch(this.youMageType());
   }
 

@@ -291,7 +291,39 @@
 .footer {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 1rem;
+}
+
+/* Именной ярлык — та же pixel-art рамка, что у школьных/заклинательных кнопок книги
+   (var(--paper) + жёсткая тень var(--line)), а не нативный вид инпута. */
+.nickname-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  padding: 1rem 1.2rem;
+  width: 12rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--line);
+  cursor: url('/ui/Cursor.png'), text;
+}
+
+.nickname-input::placeholder {
+  color: var(--mute);
+}
+
+.nickname-input:focus-visible {
+  outline: none;
+  border-color: var(--arcane);
+  box-shadow: 4px 4px 0 var(--arcane);
+}
+
+.nickname-input:disabled {
+  cursor: url('/ui/Cursor.png'), default;
+  opacity: 0.65;
 }
 
 /* Второстепенная кнопка рядом с "НАЙТИ БОЙ"/"ПОИСК…" — тень приглушённого цвета (var(--mute)),

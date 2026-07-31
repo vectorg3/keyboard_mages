@@ -4,6 +4,7 @@ import { environment } from '../environments/environment';
 
 const SERVER_URL = environment.apiUrl;
 const PLAYER_ID_KEY = 'km_player_id';
+const NICKNAME_KEY = 'km_nickname';
 
 export type QueueStatus = 'idle' | 'searching' | 'found';
 
@@ -13,6 +14,7 @@ export interface MatchInfo {
   opponentId: string;
   /** Школа соперника, выбранная им перед постановкой в очередь — для правильного спрайта. */
   opponentSchool: string;
+  opponentNickname: string;
 }
 
 /** Активный каст, ожидающий ввода триггера (окно открыто). */
@@ -94,14 +96,26 @@ export class SocketService {
   readonly matchResult = signal<'win' | 'loss' | null>(null);
 
   readonly playerId = this.getOrCreatePlayerId();
+  /** Ник, обязателен для find_match — персистится в localStorage, чтобы не вводить заново
+   *  при перезагрузке страницы (та же логика хранения, что и у playerId). */
+  readonly nickname = signal(localStorage.getItem(NICKNAME_KEY) ?? '');
 
   private socket: Socket | null = null;
   private pendingSpellId: string | null = null;
   private castRejectedTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  setNickname(value: string): void {
+    this.nickname.set(value);
+    localStorage.setItem(NICKNAME_KEY, value);
+  }
+
   findMatch(school: string): void {
     this.status.set('searching');
-    this.getSocket().emit('find_match', { playerId: this.playerId, school });
+    this.getSocket().emit('find_match', {
+      playerId: this.playerId,
+      school,
+      nickname: this.nickname().trim(),
+    });
   }
 
   /** Снимает игрока с очереди поиска — доступно только пока status === 'searching' (до

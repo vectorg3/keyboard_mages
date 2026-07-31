@@ -12,6 +12,7 @@ export interface ActiveCast {
 
 export interface PlayerState {
   playerId: string;
+  nickname: string;
   school: SpellSchool; // школа мага, выбранная перед поиском матча (см. раздел 7 game-design.md)
   hp: number;
   cooldowns: Record<string, number>; // spellId -> timestamp, когда снова доступен

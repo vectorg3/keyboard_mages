@@ -7,6 +7,9 @@
   align-items: center;
   gap: 0.6rem;
   width: clamp(9.5rem, 25vw, 14.5rem);
+  /* Позволяет .fighter-name использовать cqw относительно ширины ЭТОГО хоста — та же техника,
+     что у .spellbook (container-type: inline-size) в lobby.css для ribbon-wide.png. */
+  container-type: inline-size;
 }
 
 :host(.character--foe) {
@@ -20,15 +23,28 @@
   width: 100%;
 }
 
+/* Тот же ленточный спрайт (public/ui/headers/ribbon-wide.png, 133×48), что и у заголовка
+   "Выбери мага" над книгой в лобби (см. .spellbook-header в lobby.css) — там же взят
+   aspect-ratio 133/48. cqw там завязан на container-type книги, здесь его нет, поэтому
+   размеры даны в rem/em от ширины :host. */
 .fighter-name {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 133 / 48;
+  padding: 0 0.5rem;
+  background-image: url('/ui/headers/ribbon-wide.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: clamp(0.5rem, 2.2cqw, 0.7rem);
   color: var(--ink);
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
-  max-width: 100%;
 }
 
 .effect-icons {

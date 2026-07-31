@@ -35,16 +35,18 @@ export class DuelService {
   createMatch(
     playerAId: string,
     playerASchool: SpellSchool,
+    playerANickname: string,
     playerBId: string,
     playerBSchool: SpellSchool,
+    playerBNickname: string,
     now = Date.now(),
   ): MatchState {
     const match: MatchState = {
       matchId: randomUUID(),
       playerIds: [playerAId, playerBId],
       players: {
-        [playerAId]: this.createPlayerState(playerAId, playerASchool),
-        [playerBId]: this.createPlayerState(playerBId, playerBSchool),
+        [playerAId]: this.createPlayerState(playerAId, playerASchool, playerANickname),
+        [playerBId]: this.createPlayerState(playerBId, playerBSchool, playerBNickname),
       },
       effects: [],
       createdAt: now,
@@ -76,9 +78,14 @@ export class DuelService {
     match.winnerId = this.opponentId(match, loserId);
   }
 
-  private createPlayerState(playerId: string, school: SpellSchool): PlayerState {
+  private createPlayerState(
+    playerId: string,
+    school: SpellSchool,
+    nickname: string,
+  ): PlayerState {
     return {
       playerId,
+      nickname,
       school,
       hp: MAX_HP,
       cooldowns: {},

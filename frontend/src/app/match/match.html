@@ -9,7 +9,7 @@
   <div class="scene" aria-label="Арена">
     <app-character
       side="you"
-      name="Вы"
+      [name]="socket.nickname()"
       [mageType]="youMageType()"
       [hpPercent]="youHpPercent()"
       [effects]="youEffects()"
@@ -26,7 +26,7 @@
 
     <app-character
       side="foe"
-      [name]="match.opponentId"
+      [name]="match.opponentNickname"
       [mageType]="foeMageType()"
       [hpPercent]="foeHpPercent()"
       [effects]="foeEffects()"

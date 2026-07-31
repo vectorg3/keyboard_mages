@@ -70,10 +70,19 @@
 </section>
 
 <footer class="footer">
+  <input
+    class="nickname-input"
+    type="text"
+    placeholder="Твой ник"
+    maxlength="20"
+    [value]="socket.nickname()"
+    [disabled]="socket.status() === 'searching'"
+    (input)="onNicknameInput($event)"
+  />
   <button
     class="keycap-btn"
     type="button"
-    [disabled]="socket.status() === 'searching'"
+    [disabled]="socket.status() === 'searching' || !canFindMatch()"
     (click)="onFindMatch()"
   >
     {{ socket.status() === 'searching' ? 'ПОИСК…' : 'НАЙТИ БОЙ' }}

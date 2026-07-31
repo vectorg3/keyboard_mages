@@ -6,6 +6,7 @@ import { SpellSchool } from '../spells/spell.types';
 interface QueueEntry {
   playerId: string;
   school: SpellSchool;
+  nickname: string;
 }
 
 @Injectable()
@@ -15,20 +16,22 @@ export class MatchmakingService {
   constructor(private readonly duelService: DuelService) {}
 
   /** Ставит игрока в очередь; если уже есть ожидающий, сразу создаёт матч. */
-  enqueue(playerId: string, school: SpellSchool): MatchState | null {
+  enqueue(playerId: string, school: SpellSchool, nickname: string): MatchState | null {
     if (this.queue.some((e) => e.playerId === playerId)) return null;
 
     const opponent = this.queue.shift();
     if (!opponent) {
-      this.queue.push({ playerId, school });
+      this.queue.push({ playerId, school, nickname });
       return null;
     }
 
     return this.duelService.createMatch(
       opponent.playerId,
       opponent.school,
+      opponent.nickname,
       playerId,
       school,
+      nickname,
     );
   }
 
