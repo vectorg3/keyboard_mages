@@ -48,6 +48,18 @@ export class Match {
   /** То же самое, но для 2 уровня (Advanced) — вполовину слабее, см. --shake-scale в match.css. */
   protected readonly screenShakeSmall = signal(false);
 
+  /** true — проигрывает анимацию смерти на проигравшем бойце (см. Character.dying) и никогда не
+   *  сбрасывается обратно: за матч умереть можно максимум раз. */
+  protected readonly youDying = signal(false);
+  protected readonly foeDying = signal(false);
+  /** Окно результата матча раскрывается не сразу на socket.matchResult(), а только после того, как
+   *  на проигравшем доиграет анимация смерти (см. onDeathAnimationEnd) — раздел про смерть перед
+   *  победой/поражением. */
+  protected readonly showResult = signal(false);
+  protected readonly displayedResult = computed(() =>
+    this.showResult() ? this.socket.matchResult() : null,
+  );
+
   protected readonly countdownSeconds = computed(() => {
     const ms = this.socket.countdownMs();
     return ms === null ? null : Math.max(1, Math.ceil(ms / 1000));
@@ -151,6 +163,15 @@ export class Match {
         FLOATING_NUMBER_LIFETIME_MS,
       );
     });
+
+    // Анимация смерти на проигравшем при завершении матча — окно результата раскрывается не
+    // сразу на matchResult(), а только когда она доиграет (см. onDeathAnimationEnd).
+    effect(() => {
+      const result = this.socket.matchResult();
+      if (!result) return;
+      const loserFighter: Fighter = result === 'loss' ? 'you' : 'foe';
+      (loserFighter === 'you' ? this.youDying : this.foeDying).set(true);
+    });
   }
 
   private hpPercentFor(playerId: string | undefined): number {
@@ -196,6 +217,12 @@ export class Match {
 
   onAttackAnimationEnd(fighter: Fighter): void {
     (fighter === 'you' ? this.youAttacking : this.foeAttacking).set(false);
+  }
+
+  /** Раскрывает окно результата матча — вызывается, когда на проигравшем доиграла анимация
+   *  смерти (см. эффект на socket.matchResult() в конструкторе), а не сразу на matchResult(). */
+  onDeathAnimationEnd(): void {
+    this.showResult.set(true);
   }
 
   /** Plays the cast VFX sprite once on the given fighter (the spell's target). Safe to call

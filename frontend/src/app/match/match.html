@@ -17,6 +17,8 @@
       (attackAnimationEnd)="onAttackAnimationEnd('you')"
       [vfxSpellId]="youVfx()"
       (vfxAnimationEnd)="onVfxAnimationEnd('you')"
+      [dying]="youDying()"
+      (deathAnimationEnd)="onDeathAnimationEnd()"
     />
 
     <span class="vs" [class.vs--countdown]="!socket.matchStarted()">
@@ -34,6 +36,8 @@
       (attackAnimationEnd)="onAttackAnimationEnd('foe')"
       [vfxSpellId]="foeVfx()"
       (vfxAnimationEnd)="onVfxAnimationEnd('foe')"
+      [dying]="foeDying()"
+      (deathAnimationEnd)="onDeathAnimationEnd()"
     />
   </div>
 
@@ -85,7 +89,7 @@
   }
 }
 
-@if (socket.matchResult(); as result) {
+@if (displayedResult(); as result) {
   <div class="match-result-backdrop">
     <div class="match-result">
       <h2

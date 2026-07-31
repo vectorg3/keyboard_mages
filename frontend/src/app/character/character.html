@@ -24,7 +24,8 @@
     [class.character-sprite--arcane]="mageType() === 'arcane'"
     [class.character-sprite--nature]="mageType() === 'nature'"
     [class.character-sprite--attack]="attacking()"
-    (animationend)="attackAnimationEnd.emit()"
+    [class.character-sprite--death]="dying()"
+    (animationend)="onSpriteAnimationEnd()"
     aria-hidden="true"
   ></div>
   @if (vfxSpellId(); as vfx) {

@@ -185,6 +185,50 @@
   animation-duration: 0.8s;
 }
 
+/* Анимация смерти — играет один раз и остаётся на последнем кадре (fill-mode: forwards), пока
+   матч не сброшен (см. Match: youDying/foeDying никогда не возвращаются в false). Идёт ПОСЛЕ
+   .character-sprite--attack в файле — при совпадении specificity (оба компаунда из двух классов)
+   выигрывает более поздняя по source order, так что смерть визуально перекрывает зависшую атаку,
+   если персонаж умер прямо во время своей атаки. Все 5 схем спрайтов — те же 4×2/8-кадров сетки,
+   что и sprite-idle/sprite-attack-8f, поэтому используют готовые keyframes sprite-attack-8f
+   (реальное имя анимации в раскладке 4×2, а не что-то специфичное для атаки) и стандартный
+   background-size: 400% 200% из базового .character-sprite — новых keyframes не нужно. */
+.character-sprite--death {
+  animation-timing-function: steps(1);
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+.character-sprite--fire.character-sprite--death {
+  background-image: url('/mage-sprites/fire/sprite-animation-85x85-8f-sheet-death.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--ice.character-sprite--death {
+  background-image: url('/mage-sprites/frost/sprite-animation-64x64-8f-sheet-death.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--chaos.character-sprite--death {
+  background-image: url('/mage-sprites/chaos/sprite-animation-64x64-8f-sheet-death.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--arcane.character-sprite--death {
+  background-image: url('/mage-sprites/arcane/sprite-animation-64x64-8f-sheet-death.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.8s;
+}
+
+.character-sprite--nature.character-sprite--death {
+  background-image: url('/mage-sprites/nature/sprite-64x64px-8f-sheet-death.png');
+  animation-name: sprite-attack-8f;
+  animation-duration: 0.8s;
+}
+
 @keyframes sprite-attack-8f {
   0% {
     background-position: 0% 0%;
@@ -215,6 +259,15 @@
   }
 
   87.5% {
+    background-position: 100% 100%;
+  }
+
+  /* Явный 100% (не только 87.5%) — иначе animation-fill-mode: forwards у .character-sprite--death
+     держит НЕ последний кадр, а implicit-конечное состояние, которое браузер интерполирует к
+     базовому (неанимированному) background-position — 0% 0%, т.е. первый кадр. Для .character-
+     sprite--attack это было незаметно (класс сразу снимается по onAttackAnimationEnd), но у смерти
+     персонаж должен реально замереть на последнем кадре. */
+  100% {
     background-position: 100% 100%;
   }
 }

@@ -35,8 +35,13 @@ export class Character {
    *  заклинания — null, если сейчас ничего не играется. */
   readonly vfxSpellId = input<string | null>(null);
 
+  /** true — проигрывает анимацию смерти один раз и остаётся на последнем кадре (animation-fill-mode:
+   *  forwards в CSS), никогда не сбрасывается обратно в false — персонаж умирает максимум раз за матч. */
+  readonly dying = input<boolean>(false);
+
   readonly attackAnimationEnd = output<void>();
   readonly vfxAnimationEnd = output<void>();
+  readonly deathAnimationEnd = output<void>();
 
   protected readonly formatCooldown = formatCooldown;
   protected readonly spellIconPath = spellIconPath;
@@ -51,5 +56,13 @@ export class Character {
   /** Название заклинания-источника эффекта — для title-подсказки на иконке. */
   protected effectSpellName(sourceSpellId: string): string {
     return SPELL_BY_ID[sourceSpellId]?.name ?? sourceSpellId;
+  }
+
+  /** .character-sprite — общий div на attack/death (см. character.html), поэтому один
+   *  animationend на оба: dying() приоритетнее — если персонаж умирает, событие точно от
+   *  анимации смерти, а не прерванной атаки (CSS уже отдаёт смерти визуальный приоритет). */
+  protected onSpriteAnimationEnd(): void {
+    if (this.dying()) this.deathAnimationEnd.emit();
+    else this.attackAnimationEnd.emit();
   }
 }
