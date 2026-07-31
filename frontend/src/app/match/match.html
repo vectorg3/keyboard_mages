@@ -1,5 +1,10 @@
 @if (socket.match(); as match) {
-  <div class="scene" aria-label="Арена">
+  <div
+    class="scene"
+    [class.scene--shake]="screenShake()"
+    (animationend)="onSceneAnimationEnd($event)"
+    aria-label="Арена"
+  >
     <app-character
       side="you"
       [name]="socket.nickname()"

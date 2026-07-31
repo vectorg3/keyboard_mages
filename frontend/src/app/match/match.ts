@@ -1,6 +1,6 @@
 import { Component, HostListener, computed, effect, inject, input, signal } from '@angular/core';
 import { SocketService } from '../socket.service';
-import { SPELL_BUTTONS_BY_SCHOOL } from '../shared/spells-data';
+import { SPELL_BUTTONS_BY_SCHOOL, SPELL_BY_ID } from '../shared/spells-data';
 import { MageType } from '../shared/mage-type';
 import { Fighter } from '../character/fighter';
 import { FloatingNumber } from '../character/floating-number';
@@ -39,6 +39,10 @@ export class Match {
    *  всегда проигрывается на кастере вне зависимости от типа заклинания. */
   protected readonly youVfx = signal<string | null>(null);
   protected readonly foeVfx = signal<string | null>(null);
+
+  /** Тряска всей арены на успешный каст заклинания 3 уровня (Ultimate) — независимо от того,
+   *  кто из бойцов кастер/цель. */
+  protected readonly screenShake = signal(false);
 
   protected readonly countdownSeconds = computed(() => {
     const ms = this.socket.countdownMs();
@@ -105,6 +109,8 @@ export class Match {
           vfx.target === 'caster' ? casterFighter : casterFighter === 'you' ? 'foe' : 'you';
         this.triggerVfx(targetFighter, resolved.spellId);
       }
+
+      if (SPELL_BY_ID[resolved.spellId]?.tier === 3) this.triggerScreenShake();
     });
 
     // Летающая циферка урона/хила на любое изменение HP любого игрока — источник (прямой удар,
@@ -187,6 +193,20 @@ export class Match {
 
   onVfxAnimationEnd(fighter: Fighter): void {
     (fighter === 'you' ? this.youVfx : this.foeVfx).set(null);
+  }
+
+  /** Plays the screen-shake animation once. Safe to call again mid-animation. */
+  triggerScreenShake(): void {
+    this.screenShake.set(false);
+    requestAnimationFrame(() => this.screenShake.set(true));
+  }
+
+  /** target/currentTarget вместо сравнения animationName — Angular переименовывает имена
+   *  keyframes в скомпилированном CSS (emulated view encapsulation), так что рантайм-имя
+   *  анимации не совпадает с литералом 'screen-shake' из match.css. target === currentTarget
+   *  верно отсекает animationend, всплывшие от вложенных VFX/атака-анимаций персонажей. */
+  onSceneAnimationEnd(event: AnimationEvent): void {
+    if (event.target === event.currentTarget) this.screenShake.set(false);
   }
 
   /** Кнопка на экране результата матча. Компонент размонтируется вместе с этим (match
