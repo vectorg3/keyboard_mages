@@ -4,9 +4,10 @@ import { SPELL_BUTTONS_BY_SCHOOL } from '../shared/spells-data';
 import { MageType } from '../shared/mage-type';
 import { Fighter } from '../character/fighter';
 import { FloatingNumber } from '../character/floating-number';
-import { formatCooldown, spellIconPath } from '../shared/format';
+import { formatCooldown, spellIconPath, spellSoundPath } from '../shared/format';
 import { Character } from '../character/character';
 import { SPELL_VFX } from '../shared/spell-vfx-data';
+import { SpellSoundService } from '../shared/spell-sound.service';
 
 // Должно совпадать с длительностью CSS-анимации .floating-number (character.css), иначе циферка
 // либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
@@ -20,6 +21,7 @@ const FLOATING_NUMBER_LIFETIME_MS = 1000;
 })
 export class Match {
   protected readonly socket = inject(SocketService);
+  private readonly spellSound = inject(SpellSoundService);
 
   /** Школа игрока, выбранная ещё в лобби — сервер её самому игроку не возвращает (только
    *  школу соперника, раздел 7.34 game-design.md), поэтому приходит сюда как input. */
@@ -92,6 +94,8 @@ export class Match {
       if (!resolved?.success) return;
       const casterFighter: Fighter = resolved.casterId === this.socket.playerId ? 'you' : 'foe';
       this.triggerAttack(casterFighter);
+
+      this.spellSound.play(spellSoundPath(resolved.spellId));
 
       // VFX каста играется на ЦЕЛИ заклинания — на самом кастере для баффов (target: 'caster'),
       // на сопернике для урона/дебаффов (target: 'opponent'); см. SPELL_VFX.

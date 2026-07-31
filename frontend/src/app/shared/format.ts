@@ -9,3 +9,8 @@ export function formatCooldown(remainingMs: number): string {
 export function spellIconPath(spellId: string): string {
   return `/spell-icons/${spellId.split('_')[0]}/${spellId}.png`;
 }
+
+/** Путь к звуку каста в public/sounds/spells/{school}/ — та же схема, что у spellIconPath. */
+export function spellSoundPath(spellId: string): string {
+  return `/sounds/spells/${spellId.split('_')[0]}/${spellId}.ogg`;
+}
