@@ -1,7 +1,8 @@
 .vs {
   font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--mute);
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  color: var(--hp-light);
+  text-shadow: 3px 3px 0 var(--ink);
   letter-spacing: 0.08em;
   align-self: center;
   padding-bottom: clamp(2rem, 6vw, 3.5rem);
