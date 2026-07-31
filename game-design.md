@@ -264,7 +264,7 @@ function getEffectiveCastWindow(base: number, effects: ActiveEffect[]): number {
     школы теперь ХРАНИТСЯ на сервере как `PlayerState.school`, но `startCast` его всё ещё не
     проверяет — см. открытый вопрос ниже.)*
 11. **Phoenix Rebirth — мгновенный хил + одноразовое "не даёт умереть" (`death_ward`).**
-    `Spell.healOnCast` (25) — прямое восстановление HP кастера в момент разрешения каста,
+    `Spell.healOnCast` (10) — прямое восстановление HP кастера в момент разрешения каста,
     отдельно от `onHitEffect`: не тикающий эффект, а мгновенное изменение, как урон у Attack.
     `onHitEffect: { type: 'death_ward', target: 'self', magnitude: 1, durationMs: 4000 }` —
     пока активен, следующий смертельный удар не убивает кастера, а оставляет его с `magnitude`

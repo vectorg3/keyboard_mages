@@ -59,7 +59,7 @@ export const SPELL_BUTTONS_BY_SCHOOL: Record<string, SpellButtonData[]> = {
       tier: 3,
       description: 'Исцеление + временный щит от смертельного удара',
       damage: null,
-      effect: 'Лечит на 25 HP; 4 сек не даёт умереть (выживание с 1 HP)',
+      effect: 'Лечит на 10 HP; 4 сек не даёт умереть (выживание с 1 HP)',
       cooldownSec: 6,
     },
     {

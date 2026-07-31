@@ -125,7 +125,7 @@ export const SPELL_ROSTER: Spell[] = [
     SpellTier.Ultimate,
     'Исцеление + временный щит от смертельного удара',
     {
-      healOnCast: 25,
+      healOnCast: 10,
       onHitEffect: {
         type: 'death_ward',
         target: 'self',
