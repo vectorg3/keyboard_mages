@@ -43,6 +43,8 @@ export class Match {
   /** Тряска всей арены на успешный каст заклинания 3 уровня (Ultimate) — независимо от того,
    *  кто из бойцов кастер/цель. */
   protected readonly screenShake = signal(false);
+  /** То же самое, но для 2 уровня (Advanced) — вполовину слабее, см. --shake-scale в match.css. */
+  protected readonly screenShakeSmall = signal(false);
 
   protected readonly countdownSeconds = computed(() => {
     const ms = this.socket.countdownMs();
@@ -110,7 +112,10 @@ export class Match {
         this.triggerVfx(targetFighter, resolved.spellId);
       }
 
-      if (SPELL_BY_ID[resolved.spellId]?.tier === 3) this.triggerScreenShake();
+      // Tier 3 (Ultimate) трясёт на полную, tier 2 (Advanced) — вполовину слабее (screen-shake-small).
+      const tier = SPELL_BY_ID[resolved.spellId]?.tier;
+      if (tier === 3) this.triggerScreenShake();
+      else if (tier === 2) this.triggerScreenShakeSmall();
     });
 
     // Летающая циферка урона/хила на любое изменение HP любого игрока — источник (прямой удар,
@@ -201,12 +206,20 @@ export class Match {
     requestAnimationFrame(() => this.screenShake.set(true));
   }
 
+  /** Plays the smaller (tier 2) screen-shake animation once. Safe to call again mid-animation. */
+  triggerScreenShakeSmall(): void {
+    this.screenShakeSmall.set(false);
+    requestAnimationFrame(() => this.screenShakeSmall.set(true));
+  }
+
   /** target/currentTarget вместо сравнения animationName — Angular переименовывает имена
    *  keyframes в скомпилированном CSS (emulated view encapsulation), так что рантайм-имя
    *  анимации не совпадает с литералом 'screen-shake' из match.css. target === currentTarget
    *  верно отсекает animationend, всплывшие от вложенных VFX/атака-анимаций персонажей. */
   onSceneAnimationEnd(event: AnimationEvent): void {
-    if (event.target === event.currentTarget) this.screenShake.set(false);
+    if (event.target !== event.currentTarget) return;
+    this.screenShake.set(false);
+    this.screenShakeSmall.set(false);
   }
 
   /** Кнопка на экране результата матча. Компонент размонтируется вместе с этим (match
