@@ -1,7 +1,7 @@
 # Деплой
 
 Монорепо, деплоится раздельно: backend (NestJS + Socket.io, нужен постоянно работающий
-процесс) — на Render; frontend (статическая Angular-сборка) — на Cloudflare Pages.
+процесс) — на Render; frontend (статическая Angular-сборка) — на Vercel.
 
 ## Backend — Render
 
@@ -18,20 +18,27 @@
    запрос — для реалтайм-дуэли это означает разрыв соединения/долгий коннект после простоя.
    Для стабильной игры со временем стоит перейти на платный план (без sleep).
 
-## Frontend — Cloudflare Pages
+## Frontend — Vercel
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → Workers & Pages → Create → Pages →
-   подключить репозиторий.
-2. Настройки сборки:
-   - Root directory: `frontend`
-   - Build command: `npm run build`
-   - Build output directory: `dist/frontend/browser`
-3. Деплой запускается автоматически при пуше в `master`.
+Настройки сборки в `frontend/vercel.json` (build command, output directory
+`dist/frontend/browser`, SPA-рерайты) — Vercel подхватывает их автоматически.
+
+- Через дашборд: [vercel.com](https://vercel.com) → Add New → Project → подключить
+  репозиторий, Root Directory `frontend`. Деплой запускается автоматически при пуше в
+  `master` (если Git-интеграция подключена).
+- Вручную через CLI (например, если Git-интеграция не настроена или подвисла):
+  ```bash
+  cd frontend
+  npx vercel login   # один раз, откроет браузер для авторизации
+  npx vercel --prod --yes
+  ```
+  Прод-домен: `https://frontend-nine-tau-70.vercel.app` (проект
+  `vectorg3s-projects/frontend`).
 
 ## Порядок деплоя
 
 Сначала backend (нужен готовый URL для `environment.prod.ts`), затем при необходимости
-поправить URL и запушить — Cloudflare Pages передеплоит фронт с уже верным адресом.
+поправить URL и запушить/передеплоить фронт.
 
 ## Что уже подготовлено в коде
 
@@ -43,3 +50,4 @@
 - `backend/src/main.ts` — добавлен `app.enableCors({ origin: '*' })` для обычных HTTP-
   запросов (WebSocket-гейтвеи уже разрешали CORS отдельно).
 - `render.yaml` в корне репозитория — Render Blueprint для backend.
+- `frontend/vercel.json` — build/output настройки и SPA-рерайт для Vercel.
