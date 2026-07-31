@@ -234,6 +234,7 @@
   justify-content: center;
   background: rgba(34, 30, 48, 0.6);
   z-index: 20;
+  animation: match-result-backdrop-in 0.2s ease-out;
 }
 
 .match-result {
@@ -245,6 +246,41 @@
   background: var(--panel);
   border: 2px solid var(--ink);
   box-shadow: 6px 6px 0 var(--line);
+  animation: match-result-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes match-result-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes match-result-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(1.5rem);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-0.25rem);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-result-backdrop,
+  .match-result {
+    animation: none;
+  }
 }
 
 .match-result-title {
