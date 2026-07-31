@@ -51,15 +51,16 @@
           [class.spell-btn--tier-2]="spellBtn.tier === 2"
           [class.spell-btn--tier-3]="spellBtn.tier === 3"
           [class.spell-btn--active]="socket.activeCast()?.spellId === spellBtn.id"
-          [disabled]="!socket.matchStarted() || !!socket.activeCast() || youCooldowns()[spellBtn.id] !== undefined"
+          [disabled]="
+            !socket.matchStarted() ||
+            !!socket.activeCast() ||
+            youCooldowns()[spellBtn.id] !== undefined ||
+            matchEnding()
+          "
           [title]="spellBtn.name"
           (click)="castSpellByIndex(i)"
         >
-          <img
-            class="spell-btn-icon"
-            [src]="spellIconPath(spellBtn.id)"
-            [alt]="spellBtn.name"
-          />
+          <img class="spell-btn-icon" [src]="spellIconPath(spellBtn.id)" [alt]="spellBtn.name" />
           <span class="spell-btn-key">{{ i + 1 }}</span>
           @if (youCooldowns()[spellBtn.id]; as remainingMs) {
             <div class="spell-btn-cooldown" aria-hidden="true">
@@ -99,7 +100,9 @@
       >
         {{ result === 'win' ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ' }}
       </h2>
-      <button type="button" class="keycap-btn" (click)="returnToMenu()">Вернуться на главную</button>
+      <button type="button" class="keycap-btn" (click)="returnToMenu()">
+        Вернуться на главную
+      </button>
     </div>
   </div>
 }

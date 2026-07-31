@@ -14,6 +14,10 @@ import { CastingSoundService } from '../shared/casting-sound.service';
 // либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
 const FLOATING_NUMBER_LIFETIME_MS = 1000;
 
+// Пауза между концом анимации смерти (см. onDeathAnimationEnd) и появлением окна победы/поражения —
+// даёт кадру с погибшим персонажем "повисеть" перед тем, как его накроет оверлей результата.
+const RESULT_DELAY_AFTER_DEATH_MS = 2500;
+
 @Component({
   selector: 'app-match',
   imports: [Character],
@@ -59,6 +63,9 @@ export class Match {
   protected readonly displayedResult = computed(() =>
     this.showResult() ? this.socket.matchResult() : null,
   );
+  /** Кто-то из бойцов уже умирает/умер — матч фактически решён, дальше кастовать нельзя, даже
+   *  пока окно результата ещё не появилось (см. RESULT_DELAY_AFTER_DEATH_MS). */
+  protected readonly matchEnding = computed(() => this.youDying() || this.foeDying());
 
   protected readonly countdownSeconds = computed(() => {
     const ms = this.socket.countdownMs();
@@ -83,8 +90,12 @@ export class Match {
     return this.youSpells().find((s) => s.id === cast.spellId)?.trigger ?? null;
   });
 
-  protected readonly youHpPercent = computed(() => this.hpPercentFor(this.socket.match()?.playerId));
-  protected readonly foeHpPercent = computed(() => this.hpPercentFor(this.socket.match()?.opponentId));
+  protected readonly youHpPercent = computed(() =>
+    this.hpPercentFor(this.socket.match()?.playerId),
+  );
+  protected readonly foeHpPercent = computed(() =>
+    this.hpPercentFor(this.socket.match()?.opponentId),
+  );
 
   /** Оставшийся кулдаун (мс) по spellId для игрока — undefined/отсутствие ключа = готово. */
   protected readonly youCooldowns = computed(() => {
@@ -148,7 +159,11 @@ export class Match {
       if (!change || !match) return;
 
       const fighter: Fighter | null =
-        change.playerId === match.playerId ? 'you' : change.playerId === match.opponentId ? 'foe' : null;
+        change.playerId === match.playerId
+          ? 'you'
+          : change.playerId === match.opponentId
+            ? 'foe'
+            : null;
       if (!fighter) return;
 
       const list = fighter === 'you' ? this.youFloatingNumbers : this.foeFloatingNumbers;
@@ -187,7 +202,7 @@ export class Match {
   }
 
   castSpellByIndex(index: number): void {
-    if (this.socket.activeCast() || !this.socket.matchStarted()) return;
+    if (this.socket.activeCast() || !this.socket.matchStarted() || this.matchEnding()) return;
     const spell = this.youSpells()[index];
     if (!spell || this.youCooldowns()[spell.id] !== undefined) return;
     this.socket.castSpell(spell.id);
@@ -220,9 +235,10 @@ export class Match {
   }
 
   /** Раскрывает окно результата матча — вызывается, когда на проигравшем доиграла анимация
-   *  смерти (см. эффект на socket.matchResult() в конструкторе), а не сразу на matchResult(). */
+   *  смерти (см. эффект на socket.matchResult() в конструкторе), а не сразу на matchResult().
+   *  Ещё RESULT_DELAY_AFTER_DEATH_MS сверху — даёт разглядеть кадр погибшего перед оверлеем. */
   onDeathAnimationEnd(): void {
-    this.showResult.set(true);
+    setTimeout(() => this.showResult.set(true), RESULT_DELAY_AFTER_DEATH_MS);
   }
 
   /** Plays the cast VFX sprite once on the given fighter (the spell's target). Safe to call

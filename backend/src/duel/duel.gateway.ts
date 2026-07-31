@@ -176,33 +176,7 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.duelService.tick(matchId, now);
-
-      for (const playerId of match.playerIds) {
-        const player = match.players[playerId];
-        const cooldowns: Record<string, number> = {};
-        for (const [spellId, readyAt] of Object.entries(player.cooldowns)) {
-          // Карта кулдаунов копится за весь матч и не чистится — шлём только то, что
-          // реально ещё не готово, иначе клиент годами хранил бы нулевые записи.
-          if (readyAt > now) cooldowns[spellId] = readyAt - now;
-        }
-
-        this.server.to(matchId).emit('player_sync', {
-          playerId,
-          hp: player.hp,
-          maxHp: MAX_HP,
-          cooldowns,
-          effects: match.effects
-            .filter((e) => e.targetPlayerId === playerId)
-            .map((e) => ({
-              id: e.id, // стабильный ключ для клиента: sourceSpellId может повторяться,
-              // если один и тот же баф/дебаф активен в двух экземплярах (см. раздел 7.25)
-              type: e.effectType,
-              sourceSpellId: e.sourceSpellId,
-              remainingMs: Math.max(0, e.appliedAt + e.durationMs - Date.now()),
-              magnitude: e.magnitude,
-            })),
-        });
-      }
+      this.emitPlayerSync(matchId, match, now);
 
       // Ловит смерть, случившуюся ВНУТРИ только что вызванного tick() (например, DoT-тик) —
       // без этой проверки пришлось бы ждать ещё один heartbeat-цикл (до TICK_INTERVAL_MS)
@@ -217,10 +191,46 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
    *  завершён (чтобы вызывающий код мог сразу return'уться из тика). */
   private announceIfFinished(matchId: string, match: MatchState): boolean {
     if (!match.finishedAt) return false;
+
+    // Финальный player_sync ПЕРЕД match_ended: убивающий каст завершает матч синхронно внутри
+    // handleKeyInput (DuelService.checkWinCondition), а не в tick() — следующий heartbeat застаёт
+    // match.finishedAt уже true и коротит выполнение до цикла player_sync выше (см. вызов ниже
+    // в основном тике). Без этого клиент никогда не увидел бы HP=0, только предыдущий тик.
+    this.emitPlayerSync(matchId, match, Date.now());
+
     this.server.to(matchId).emit('match_ended', { winnerId: match.winnerId });
     this.stopHeartbeat(matchId);
     setTimeout(() => this.duelService.removeMatch(matchId), MATCH_CLEANUP_DELAY_MS);
     return true;
+  }
+
+  private emitPlayerSync(matchId: string, match: MatchState, now: number): void {
+    for (const playerId of match.playerIds) {
+      const player = match.players[playerId];
+      const cooldowns: Record<string, number> = {};
+      for (const [spellId, readyAt] of Object.entries(player.cooldowns)) {
+        // Карта кулдаунов копится за весь матч и не чистится — шлём только то, что
+        // реально ещё не готово, иначе клиент годами хранил бы нулевые записи.
+        if (readyAt > now) cooldowns[spellId] = readyAt - now;
+      }
+
+      this.server.to(matchId).emit('player_sync', {
+        playerId,
+        hp: player.hp,
+        maxHp: MAX_HP,
+        cooldowns,
+        effects: match.effects
+          .filter((e) => e.targetPlayerId === playerId)
+          .map((e) => ({
+            id: e.id, // стабильный ключ для клиента: sourceSpellId может повторяться,
+            // если один и тот же баф/дебаф активен в двух экземплярах (см. раздел 7.25)
+            type: e.effectType,
+            sourceSpellId: e.sourceSpellId,
+            remainingMs: Math.max(0, e.appliedAt + e.durationMs - now),
+            magnitude: e.magnitude,
+          })),
+      });
+    }
   }
 
   private stopHeartbeat(matchId: string): void {
