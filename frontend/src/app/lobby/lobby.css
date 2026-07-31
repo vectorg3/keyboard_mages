@@ -1,3 +1,58 @@
+/* ---- Lobby row: "как играть" свиток слева от книги, оборачиваются на узких viewport ---- */
+
+.lobby-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* Фон — вертикальный свиток (public/ui/headers/scroll-vertical.png, вырезан из UI.png), пропорции
+   спрайта 108×173 (~0.62). Не через aspect-ratio — с фиксированным соотношением текст 6 шагов не
+   помещался бы по высоте без переполнения; вместо этого min-height держит форму свитка похожей на
+   исходную, а сам блок дорастает под контент (background-size: 100% 100% просто растягивается под
+   получившуюся высоту). */
+.howto {
+  /* rem, не % — % padding считается от ширины containing block (не своей!), а не .howto, и в
+     связке с flex-item'ным min-width: auto по умолчанию раздувало бы блок далеко за clamp(). */
+  width: clamp(12rem, 17vw, 14.5rem);
+  min-height: 20rem;
+  flex-shrink: 0;
+  margin-top: clamp(0.75rem, 2.5vh, 1.75rem);
+  padding: 2rem 1.3rem 1.75rem;
+  background-image: url('/ui/headers/scroll-vertical.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+}
+
+.howto-title {
+  font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: var(--ember);
+  text-align: center;
+  margin: 0;
+}
+
+.howto-steps {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 /* ---- Spellbook: always-open school + spell browser above the find-match button ---- */
 
 /* Фон — разворот открытой книги (public/ui/spellbook-open.png, вырезан из UI.png).
@@ -7,8 +62,10 @@
   aspect-ratio: 273 / 167;
   /* Ограничена и по ширине (vw), и по высоте видового окна (vh, пересчитан через aspect-ratio) —
      иначе на невысоких экранах (~1024×768 и ниже) книга шире экрана по vw упёрлась бы в высоту
-     и вызвала вертикальный скролл. */
-  width: min(94vw, 74rem, calc(64vh * (273 / 167)));
+     и вызвала вертикальный скролл. Уменьшено по сравнению с исходной книгой без соседей (94vw/74rem)
+     — оставляет место для .howto слева на средних viewport, .lobby-row переносит его выше/ниже
+     на совсем узких. */
+  width: min(84vw, 64rem, calc(62vh * (273 / 167)));
   /* Доп. верхний отступ (сверх gap у .stage) — только между заголовком и лентой "Выбери мага",
      не трогая расстояние до футера. clamp от vh — как остальные вертикальные отступы, чтобы не
      сломать бюджет высоты (.stage: height:100dvh; overflow:hidden — без скролла) на низких viewport. */
