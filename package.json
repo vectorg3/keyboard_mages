@@ -1,0 +1,13 @@
+{
+  "name": "keyboard-mage",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
