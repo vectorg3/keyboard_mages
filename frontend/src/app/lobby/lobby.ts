@@ -42,6 +42,10 @@ export class Lobby {
     this.socket.findMatch(this.youMageType());
   }
 
+  onCancelFindMatch(): void {
+    this.socket.cancelFindMatch();
+  }
+
   /** Выбор школы в спеллбуке, до постановки в очередь. */
   selectSchool(id: string): void {
     if (this.socket.status() !== 'idle') return;

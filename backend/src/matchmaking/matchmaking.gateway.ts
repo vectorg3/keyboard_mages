@@ -63,6 +63,12 @@ export class MatchmakingGateway implements OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('cancel_match')
+  handleCancelMatch(@MessageBody() payload: { playerId: string }): void {
+    this.matchmakingService.dequeue(payload.playerId);
+    this.waitingSockets.delete(payload.playerId);
+  }
+
   handleDisconnect(client: Socket): void {
     for (const [playerId, socket] of this.waitingSockets) {
       if (socket.id === client.id) {

@@ -104,6 +104,14 @@ export class SocketService {
     this.getSocket().emit('find_match', { playerId: this.playerId, school });
   }
 
+  /** Снимает игрока с очереди поиска — доступно только пока status === 'searching' (до
+   *  match_found). Сбрасываем статус сразу, не дожидаясь сервера: если матч всё же успел
+   *  найтись до того, как cancel_match дошёл, match_found просто перезапишет статус обратно. */
+  cancelFindMatch(): void {
+    this.getSocket().emit('cancel_match', { playerId: this.playerId });
+    this.status.set('idle');
+  }
+
   /** Запрашивает старт каста. Результат придёт через cast_started/cast_rejected. */
   castSpell(spellId: string): void {
     this.pendingSpellId = spellId;

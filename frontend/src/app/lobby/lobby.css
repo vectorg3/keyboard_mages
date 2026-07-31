@@ -291,4 +291,21 @@
 .footer {
   display: flex;
   justify-content: center;
+  gap: 1rem;
+}
+
+/* Второстепенная кнопка рядом с "НАЙТИ БОЙ"/"ПОИСК…" — тень приглушённого цвета (var(--mute)),
+   чтобы не спорить взглядом с основной ember-тенью keycap-btn. */
+.keycap-btn--cancel {
+  box-shadow: 4px 4px 0 var(--mute);
+}
+
+.keycap-btn--cancel:hover:not(:disabled) {
+  border-color: var(--arcane);
+  box-shadow: 4px 4px 0 var(--arcane);
+}
+
+.keycap-btn--cancel:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--arcane);
 }
