@@ -4,10 +4,11 @@ import { SPELL_BUTTONS_BY_SCHOOL, SPELL_BY_ID } from '../shared/spells-data';
 import { MageType } from '../shared/mage-type';
 import { Fighter } from '../character/fighter';
 import { FloatingNumber } from '../character/floating-number';
-import { formatCooldown, spellIconPath, spellSoundPath } from '../shared/format';
+import { castingSoundPath, formatCooldown, spellIconPath, spellSoundPath } from '../shared/format';
 import { Character } from '../character/character';
 import { SPELL_VFX } from '../shared/spell-vfx-data';
 import { SpellSoundService } from '../shared/spell-sound.service';
+import { CastingSoundService } from '../shared/casting-sound.service';
 
 // Должно совпадать с длительностью CSS-анимации .floating-number (character.css), иначе циферка
 // либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
@@ -22,6 +23,7 @@ const FLOATING_NUMBER_LIFETIME_MS = 1000;
 export class Match {
   protected readonly socket = inject(SocketService);
   private readonly spellSound = inject(SpellSoundService);
+  private readonly castingSound = inject(CastingSoundService);
 
   /** Школа игрока, выбранная ещё в лобби — сервер её самому игроку не возвращает (только
    *  школу соперника, раздел 7.34 game-design.md), поэтому приходит сюда как input. */
@@ -116,6 +118,14 @@ export class Match {
       const tier = SPELL_BY_ID[resolved.spellId]?.tier;
       if (tier === 3) this.triggerScreenShake();
       else if (tier === 2) this.triggerScreenShakeSmall();
+    });
+
+    // Зацикленный звук школы, пока у ИГРОКА открыто окно ввода триггера (socket.activeCast()
+    // приходит только самому кастующему клиенту, см. DuelGateway.handleCastStart — так что этот
+    // эффект никогда не видит чужой активный каст соперника).
+    effect(() => {
+      if (this.socket.activeCast()) this.castingSound.start(castingSoundPath(this.youMageType()));
+      else this.castingSound.stop();
     });
 
     // Летающая циферка урона/хила на любое изменение HP любого игрока — источник (прямой удар,

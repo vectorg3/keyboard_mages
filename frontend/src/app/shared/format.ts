@@ -14,3 +14,9 @@ export function spellIconPath(spellId: string): string {
 export function spellSoundPath(spellId: string): string {
   return `/sounds/spells/${spellId.split('_')[0]}/${spellId}.ogg`;
 }
+
+/** Путь к зацикленному звуку ввода триггера в public/sounds/casting/ — один файл на школу
+ *  (не на конкретное заклинание, в отличие от spellSoundPath). */
+export function castingSoundPath(school: string): string {
+  return `/sounds/casting/${school}.ogg`;
+}
