@@ -176,6 +176,14 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.duelService.tick(matchId, now);
+
+      // Бот "кастует" сам себя, как только готов (см. DuelService.driveBot) — до emitPlayerSync
+      // ниже, чтобы урон/кулдаун от его каста попали в этот же тик синка, а не в следующий.
+      for (const playerId of match.playerIds) {
+        const resolved = this.duelService.driveBot(matchId, playerId, now);
+        if (resolved) this.server.to(matchId).emit('spell_resolved', resolved);
+      }
+
       this.emitPlayerSync(matchId, match, now);
 
       // Ловит смерть, случившуюся ВНУТРИ только что вызванного tick() (например, DoT-тик) —

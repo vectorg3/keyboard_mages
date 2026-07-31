@@ -13,6 +13,14 @@ import {
 
 export const MAX_HP = 100;
 
+export interface MatchPlayerInit {
+  playerId: string;
+  school: SpellSchool;
+  nickname: string;
+  /** см. PlayerState.isBot — по умолчанию false (обычный игрок с реальным сокетом). */
+  isBot?: boolean;
+}
+
 // Пауза между match_found и стартом боя (см. раздел 7.5 game-design.md): даёт клиентам
 // время отрисовать сцену/арену до того, как разрешены первые касты.
 const PRE_MATCH_DELAY_MS = 3000;
@@ -33,20 +41,16 @@ export class DuelService {
   ) {}
 
   createMatch(
-    playerAId: string,
-    playerASchool: SpellSchool,
-    playerANickname: string,
-    playerBId: string,
-    playerBSchool: SpellSchool,
-    playerBNickname: string,
+    playerA: MatchPlayerInit,
+    playerB: MatchPlayerInit,
     now = Date.now(),
   ): MatchState {
     const match: MatchState = {
       matchId: randomUUID(),
-      playerIds: [playerAId, playerBId],
+      playerIds: [playerA.playerId, playerB.playerId],
       players: {
-        [playerAId]: this.createPlayerState(playerAId, playerASchool, playerANickname),
-        [playerBId]: this.createPlayerState(playerBId, playerBSchool, playerBNickname),
+        [playerA.playerId]: this.createPlayerState(playerA),
+        [playerB.playerId]: this.createPlayerState(playerB),
       },
       effects: [],
       createdAt: now,
@@ -78,19 +82,16 @@ export class DuelService {
     match.winnerId = this.opponentId(match, loserId);
   }
 
-  private createPlayerState(
-    playerId: string,
-    school: SpellSchool,
-    nickname: string,
-  ): PlayerState {
+  private createPlayerState(init: MatchPlayerInit): PlayerState {
     return {
-      playerId,
-      nickname,
-      school,
+      playerId: init.playerId,
+      nickname: init.nickname,
+      school: init.school,
       hp: MAX_HP,
       cooldowns: {},
       activeCast: null,
       silencedSpellId: null,
+      isBot: init.isBot ?? false,
     };
   }
 
@@ -470,5 +471,28 @@ export class DuelService {
     }
 
     this.checkWinCondition(match, now);
+  }
+
+  /** Бот "печатает" свой единственный спелл мгновенно и без ошибок, как только он снова готов
+   *  (кулдаун) — вызывается из DuelGateway.ensureHeartbeat каждый тик для каждого игрока матча;
+   *  для не-бота или ещё не готового бота просто возвращает null. Переиспользует startCast/
+   *  handleKeyInput как есть, так что урон/кулдаун/checkWinCondition считаются той же логикой,
+   *  что и у реального игрока — гейтвей рассылает результат как обычный spell_resolved. */
+  driveBot(matchId: string, botPlayerId: string, now = Date.now()): CastResolution | null {
+    const match = this.matches.get(matchId);
+    const bot = match?.players[botPlayerId];
+    if (!match || !bot || !bot.isBot || match.finishedAt) return null;
+
+    const spell = this.spellsService.getBotSpell(bot.school);
+    if (!spell) return null;
+
+    const started = this.startCast(matchId, botPlayerId, spell.id, now);
+    if (!started.ok) return null;
+
+    let result: KeyInputResult | null = null;
+    for (const ch of started.cast.trigger) {
+      result = this.handleKeyInput(matchId, botPlayerId, ch, now);
+    }
+    return result?.resolved ?? null;
   }
 }

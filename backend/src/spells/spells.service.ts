@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SPELL_ROSTER } from './spell-roster';
-import { Spell, SpellSchool, SpellTier } from './spell.types';
+import { Spell, SpellSchool, SpellTier, SpellType } from './spell.types';
 
 @Injectable()
 export class SpellsService {
@@ -40,5 +40,14 @@ export class SpellsService {
 
   getBySchool(school: SpellSchool): Spell[] {
     return SPELL_ROSTER.filter((s) => s.school === school);
+  }
+
+  /** Единственное заклинание бота (см. BotService/DuelService.driveBot) — первое Attack базового
+   *  тира школы, наносящее урон. Не хардкодит id: подхватит правильный спелл сам, если ростер
+   *  когда-нибудь переупорядочат. */
+  getBotSpell(school: SpellSchool): Spell | undefined {
+    return SPELL_ROSTER.find(
+      (s) => s.school === school && s.tier === SpellTier.Basic && s.type === SpellType.Attack,
+    );
   }
 }
