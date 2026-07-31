@@ -74,7 +74,7 @@
     class="nickname-input"
     type="text"
     placeholder="Твой ник"
-    maxlength="20"
+    maxlength="9"
     [value]="socket.nickname()"
     [disabled]="socket.status() === 'searching'"
     (input)="onNicknameInput($event)"

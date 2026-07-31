@@ -17,7 +17,7 @@ interface FindMatchPayload {
   nickname: string;
 }
 
-const MAX_NICKNAME_LENGTH = 20;
+const MAX_NICKNAME_LENGTH = 9;
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class MatchmakingGateway implements OnGatewayDisconnect {

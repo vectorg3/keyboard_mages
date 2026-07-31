@@ -39,7 +39,7 @@
   background-repeat: no-repeat;
   image-rendering: pixelated;
   font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
-  font-size: clamp(0.5rem, 2.2cqw, 0.7rem);
+  font-size: clamp(0.65rem, 3.2cqw, 0.95rem);
   color: var(--ink);
   text-align: center;
   overflow: hidden;
