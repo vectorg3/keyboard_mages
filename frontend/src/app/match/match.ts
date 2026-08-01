@@ -1,4 +1,16 @@
-import { Component, HostListener, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { SocketService } from '../socket.service';
 import { SPELL_BUTTONS_BY_SCHOOL, SPELL_BY_ID } from '../shared/spells-data';
 import { MageType } from '../shared/mage-type';
@@ -7,8 +19,10 @@ import { FloatingNumber } from '../character/floating-number';
 import { castingSoundPath, formatCooldown, spellIconPath, spellSoundPath } from '../shared/format';
 import { Character } from '../character/character';
 import { SPELL_VFX } from '../shared/spell-vfx-data';
+import { CHARACTER_SPRITES } from '../character/sprite-sheet-data';
 import { SpellSoundService } from '../shared/spell-sound.service';
 import { CastingSoundService } from '../shared/casting-sound.service';
+import { Point, ProjectileLayer } from './projectile-layer';
 
 // Должно совпадать с длительностью CSS-анимации .floating-number (character.css), иначе циферка
 // либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
@@ -24,10 +38,20 @@ const RESULT_DELAY_AFTER_DEATH_MS = 2500;
   templateUrl: './match.html',
   styleUrl: './match.css',
 })
-export class Match {
+export class Match implements AfterViewInit, OnDestroy {
   protected readonly socket = inject(SocketService);
   private readonly spellSound = inject(SpellSoundService);
   private readonly castingSound = inject(CastingSoundService);
+
+  private readonly youCharRef = viewChild.required<unknown, ElementRef<HTMLElement>>('youChar', {
+    read: ElementRef,
+  });
+  private readonly foeCharRef = viewChild.required<unknown, ElementRef<HTMLElement>>('foeChar', {
+    read: ElementRef,
+  });
+  private readonly projectileCanvasRef =
+    viewChild.required<ElementRef<HTMLCanvasElement>>('projectileCanvas');
+  private readonly projectileLayer = new ProjectileLayer();
 
   /** Школа игрока, выбранная ещё в лобби — сервер её самому игроку не возвращает (только
    *  школу соперника, раздел 7.34 game-design.md), поэтому приходит сюда как input. */
@@ -135,6 +159,25 @@ export class Match {
         const targetFighter: Fighter =
           vfx.target === 'caster' ? casterFighter : casterFighter === 'you' ? 'foe' : 'you';
         this.triggerVfx(targetFighter, resolved.spellId);
+
+        // Снаряд летит только на удар по сопернику (не на баффы на себя) и только если у школы
+        // кастера есть спрайт снаряда (CHARACTER_SPRITES[...].projectile) — сейчас только fire.
+        if (vfx.target === 'opponent') {
+          const casterMageType = casterFighter === 'you' ? this.youMageType() : this.foeMageType();
+          const projectileGrid = CHARACTER_SPRITES[casterMageType].projectile;
+          if (projectileGrid) {
+            const canvas = this.projectileCanvasRef().nativeElement;
+            const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+              .nativeElement;
+            const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+              .nativeElement;
+            this.projectileLayer.fire(
+              projectileGrid,
+              this.canvasLocalCenter(casterEl, canvas),
+              this.canvasLocalCenter(targetEl, canvas),
+            );
+          }
+        }
       }
 
       // Tier 3 (Ultimate) трясёт на полную, tier 2 (Advanced) — вполовину слабее (screen-shake-small).
@@ -187,6 +230,28 @@ export class Match {
       const loserFighter: Fighter = result === 'loss' ? 'you' : 'foe';
       (loserFighter === 'you' ? this.youDying : this.foeDying).set(true);
     });
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    await this.projectileLayer.init(this.projectileCanvasRef().nativeElement);
+  }
+
+  ngOnDestroy(): void {
+    this.projectileLayer.destroy();
+  }
+
+  /** Точка на теле бойца в локальных координатах canvas (CSS px) — для позиционирования снаряда,
+   *  который летает в canvas-пространстве, а не в DOM. Целится в сам .sprite-canvas персонажа
+   *  (не в весь хост-элемент — тот выше из-за баннера имени/HP-бара над спрайтом) и берёт точку
+   *  чуть ниже его центра, на уровне руки/торса, а не капюшона. */
+  private canvasLocalCenter(el: HTMLElement, canvas: HTMLCanvasElement): Point {
+    const spriteEl = el.querySelector('.sprite-canvas') ?? el;
+    const canvasRect = canvas.getBoundingClientRect();
+    const rect = spriteEl.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2 - canvasRect.left,
+      y: rect.top + rect.height * 0.62 - canvasRect.top,
+    };
   }
 
   private hpPercentFor(playerId: string | undefined): number {

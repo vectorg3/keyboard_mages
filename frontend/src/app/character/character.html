@@ -16,25 +16,5 @@
       <span class="floating-number" [class.floating-number--heal]="n.kind === 'heal'">{{ n.text }}</span>
     }
   </div>
-  <div
-    class="character-sprite"
-    [class.character-sprite--fire]="mageType() === 'fire'"
-    [class.character-sprite--ice]="mageType() === 'ice'"
-    [class.character-sprite--chaos]="mageType() === 'chaos'"
-    [class.character-sprite--arcane]="mageType() === 'arcane'"
-    [class.character-sprite--nature]="mageType() === 'nature'"
-    [class.character-sprite--attack]="attacking()"
-    [class.character-sprite--death]="dying()"
-    (animationend)="onSpriteAnimationEnd()"
-    aria-hidden="true"
-  ></div>
-  @if (vfxSpellId(); as vfx) {
-    <div
-      class="spell-vfx"
-      [class]="'spell-vfx--' + vfx"
-      [style.animationDuration.ms]="vfxDurationMs()"
-      (animationend)="vfxAnimationEnd.emit()"
-      aria-hidden="true"
-    ></div>
-  }
+  <canvas class="sprite-canvas" #spriteCanvas aria-hidden="true"></canvas>
 </div>

@@ -28,6 +28,9 @@
 /* ---- Scene: the arena — сами бойцы теперь в app-character (character/) ---- */
 
 .scene {
+  /* Positioning context for .projectile-canvas below — it needs to span exactly this box to
+     translate the two fighters' on-screen centers into its own local coordinate space. */
+  position: relative;
   width: 100vw;
   margin-left: calc(50% - 50vw);
   /* Не margin:auto с обеих сторон — при равном авто-отступе сверху/снизу любая попытка
@@ -107,6 +110,20 @@
   .scene--shake-small {
     animation: none;
   }
+}
+
+/* Overlay canvas for attack projectiles (see ProjectileLayer) — spans the whole arena so a
+   projectile can fly from one fighter's on-screen position to the other's; drawn above both
+   character canvases (last child of .scene, but out of grid flow via absolute positioning).
+   width/height: 100% is load-bearing, not redundant with inset: 0 — <canvas> is a replaced
+   element, and inset alone does not stretch a replaced element's box the way it would a <div>;
+   without an explicit size it keeps Pixi's own 800×600 default instead of filling .scene. */
+.projectile-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* ---- Spell bar: player's own school abilities, bottom-center ---- */

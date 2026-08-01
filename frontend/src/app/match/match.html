@@ -7,6 +7,7 @@
     aria-label="Арена"
   >
     <app-character
+      #youChar
       side="you"
       [name]="socket.nickname()"
       [mageType]="youMageType()"
@@ -26,6 +27,7 @@
     </span>
 
     <app-character
+      #foeChar
       side="foe"
       [name]="match.opponentNickname"
       [mageType]="foeMageType()"
@@ -39,6 +41,8 @@
       [dying]="foeDying()"
       (deathAnimationEnd)="onDeathAnimationEnd()"
     />
+
+    <canvas class="projectile-canvas" #projectileCanvas aria-hidden="true"></canvas>
   </div>
 
   @if (youSpells().length) {
