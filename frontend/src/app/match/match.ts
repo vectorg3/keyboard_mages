@@ -16,7 +16,13 @@ import { SPELL_BUTTONS_BY_SCHOOL, SPELL_BY_ID } from '../shared/spells-data';
 import { MageType } from '../shared/mage-type';
 import { Fighter } from '../character/fighter';
 import { FloatingNumber } from '../character/floating-number';
-import { castingSoundPath, formatCooldown, spellIconPath, spellSoundPath } from '../shared/format';
+import {
+  castingSoundPath,
+  formatCooldown,
+  keySpritePath,
+  spellIconPath,
+  spellSoundPath,
+} from '../shared/format';
 import { Character } from '../character/character';
 import { SPELL_VFX } from '../shared/spell-vfx-data';
 import { CHARACTER_SPRITES } from '../character/sprite-sheet-data';
@@ -99,14 +105,23 @@ export class Match implements AfterViewInit, OnDestroy {
   /** Кнопки заклинаний школы игрока — пусто, если для школы ещё нет данных/иконок. */
   protected readonly youSpells = computed(() => SPELL_BUTTONS_BY_SCHOOL[this.youMageType()] ?? []);
 
-  /** Сколько символов триггера уже верно введено — из дробного progress (0..1) сервера. */
-  protected readonly typedCount = computed(() => {
-    const cast = this.socket.activeCast();
-    if (!cast) return 0;
-    const spell = this.youSpells().find((s) => s.id === cast.spellId);
-    if (!spell) return 0;
-    return Math.round(this.socket.castProgress() * spell.trigger.length);
-  });
+  /** Локальный (оптимистичный) счётчик верно введённых символов триггера — обновляется сразу по
+   *  keydown в predictKeystroke(), не дожидаясь ответа сервера (input_ack), чтобы клавиши
+   *  "нажимались" без задержки на пинг. Проверка символа зеркалит DuelService.handleKeyInput 1-в-1
+   *  (сравнение с cast.trigger[typedCount], опечатка полностью сбрасывает прогресс на бэкенде) —
+   *  раз клиент шлёт на сервер тот же event.key, что сравнивает сам, локальный и серверный счёт
+   *  неизбежно сойдутся, так что тут можно полностью доверять предсказанию, не подмешивая
+   *  socket.castProgress(): просто Math.max() с ним ломался бы именно на сбросе — сервер ещё не
+   *  прислал progress:0 по опечатке (round trip), и его устаревшее высокое значение маскировало
+   *  бы уже случившийся локальный сброс до следующего input_ack. */
+  protected readonly locallyTypedCount = signal(0);
+
+  /** 0, если сейчас нет активного каста — locallyTypedCount мог не успеть сброситься (эффект в
+   *  constructor реагирует на activeCast() асинхронно), а рисовать нажатые клавиши без открытого
+   *  окна каста не должно. */
+  protected readonly typedCount = computed(() =>
+    this.socket.activeCast() ? this.locallyTypedCount() : 0,
+  );
 
   protected readonly activeCastTrigger = computed(() => {
     const cast = this.socket.activeCast();
@@ -140,6 +155,7 @@ export class Match implements AfterViewInit, OnDestroy {
 
   protected readonly formatCooldown = formatCooldown;
   protected readonly spellIconPath = spellIconPath;
+  protected readonly keySpritePath = keySpritePath;
 
   constructor() {
     // Проигрываем анимацию атаки на любой успешный каст — единственный доступный "эффект
@@ -192,6 +208,13 @@ export class Match implements AfterViewInit, OnDestroy {
     effect(() => {
       if (this.socket.activeCast()) this.castingSound.start(castingSoundPath(this.youMageType()));
       else this.castingSound.stop();
+    });
+
+    // Сброс локального предсказания (см. locallyTypedCount) на любую смену activeCast — и на
+    // старте нового каста (typedCount должен начаться с 0), и на его завершении/отмене.
+    effect(() => {
+      this.socket.activeCast();
+      this.locallyTypedCount.set(0);
     });
 
     // Летающая циферка урона/хила на любое изменение HP любого игрока — источник (прямой удар,
@@ -279,13 +302,23 @@ export class Match implements AfterViewInit, OnDestroy {
   onKeydown(event: KeyboardEvent): void {
     if (event.key.length !== 1) return;
 
-    if (this.socket.activeCast()) {
+    const cast = this.socket.activeCast();
+    if (cast) {
       this.socket.sendKey(event.key);
+      this.predictKeystroke(cast.spellId, event.key);
       return;
     }
 
     const index = Number(event.key) - 1;
     if (Number.isInteger(index)) this.castSpellByIndex(index);
+  }
+
+  /** Зеркалит проверку символа из DuelService.handleKeyInput на бэкенде — см. locallyTypedCount. */
+  private predictKeystroke(spellId: string, char: string): void {
+    const spell = this.youSpells().find((s) => s.id === spellId);
+    if (!spell) return;
+    const expected = spell.trigger[this.locallyTypedCount()];
+    this.locallyTypedCount.set(char === expected ? this.locallyTypedCount() + 1 : 0);
   }
 
   /** Plays the cast/attack sprite once for the given fighter. Safe to call again mid-animation. */

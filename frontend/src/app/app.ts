@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { SocketService } from './socket.service';
 import { MageType } from './shared/mage-type';
 import { ClickSoundService } from './shared/click-sound.service';
+import { keySpritePath } from './shared/format';
 import { Lobby } from './lobby/lobby';
 import { Match } from './match/match';
 
@@ -17,6 +18,7 @@ export class App {
   protected readonly socket = inject(SocketService);
   private readonly clickSound = inject(ClickSoundService);
   protected readonly titleRows = buildTitleRows(TITLE_WORDS);
+  protected readonly keySpritePath = keySpritePath;
 
   /** Школа, выбранная игроком — должна пережить переход Lobby → Match (сервер не возвращает
    *  игроку его же школу, только школу соперника, раздел 7.34 game-design.md), поэтому живёт

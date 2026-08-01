@@ -3,7 +3,12 @@
     @for (row of titleRows; track row.word) {
       <div class="key-word">
         @for (letter of row.letters; track letter.index) {
-          <span class="key" [style.--i]="letter.index">{{ letter.char }}</span>
+          <span
+            class="key"
+            [style.--i]="letter.index"
+            [style.background-image]="'url(' + keySpritePath(letter.char, false) + ')'"
+            aria-hidden="true"
+          ></span>
         }
       </div>
     }

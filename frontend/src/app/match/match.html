@@ -85,9 +85,13 @@
       <div class="cast-window-bar-track">
         <div class="cast-window-bar" [style.animationDuration.ms]="cast.windowMs"></div>
       </div>
-      <div class="cast-window-chars">
+      <span class="sr-only">{{ activeCastTrigger() }}</span>
+      <div class="cast-window-chars" aria-hidden="true">
         @for (ch of (activeCastTrigger() ?? '').split(''); track $index) {
-          <span class="cast-char" [class.cast-char--done]="$index < typedCount()">{{ ch }}</span>
+          <span
+            class="cast-char"
+            [style.background-image]="'url(' + keySpritePath(ch, $index < typedCount()) + ')'"
+          ></span>
         }
       </div>
     </div>
