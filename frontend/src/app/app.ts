@@ -2,9 +2,13 @@ import { Component, inject, signal } from '@angular/core';
 import { SocketService } from './socket.service';
 import { MageType } from './shared/mage-type';
 import { ClickSoundService } from './shared/click-sound.service';
-import { keySpritePath } from './shared/format';
+import { keySpritePath, preloadKeySprites } from './shared/format';
 import { Lobby } from './lobby/lobby';
 import { Match } from './match/match';
+
+// Прогрев кэша на модульном уровне (не в constructor) — запускается один раз в момент импорта
+// этого файла, до первого рендера App, а не после его создания.
+preloadKeySprites();
 
 const TITLE_WORDS = ['KEYBOARD', 'MAGES'];
 

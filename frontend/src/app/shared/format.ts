@@ -64,3 +64,20 @@ export function keySpritePath(char: string, pressed: boolean): string {
   const folder = pressed ? 'Keyboard%20Press' : 'Keyboard';
   return `/ui/keyboard/${folder}/Letters/L.%20Key%20${index}.png`;
 }
+
+/** Прогревает браузерный кэш всеми 52 спрайтами клавиш (26 букв × отжата/нажата) сразу при
+ *  старте приложения — без этого браузер запрашивает background-image только в момент, когда
+ *  элемент с ним впервые попадает в разметку (title-заголовок уже показывает часть букв с самой
+ *  загрузки страницы, но не "нажатое" состояние — оно нужно только внутри активного боя, и без
+ *  прогрева каждая новая буква триггера догружается с нуля прямо посреди матча, из-за чего
+ *  клавиши в .cast-window-chars на глаз "долетают" с задержкой). new Image() достаточно: сам факт
+ *  простановки .src запускает загрузку и кладёт результат в HTTP/memory cache браузера, на
+ *  переменную ссылаться дальше не нужно — достаточно, что GC не тронет её до конца загрузки. */
+export function preloadKeySprites(): void {
+  for (const char of Object.keys(LETTER_KEY_INDEX)) {
+    for (const pressed of [false, true]) {
+      const img = new Image();
+      img.src = keySpritePath(char, pressed);
+    }
+  }
+}
