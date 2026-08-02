@@ -31,19 +31,11 @@ export class Lobby {
     () => this.schoolOptions.find((s) => s.id === this.youMageType())?.label ?? '',
   );
 
-  /** Заклинание, выбранное в спеллбуке (для показа описания/статов во всплывающем тултипе под
-   *  строкой) — чисто локальный предпросмотр, не нужен за пределами Lobby. */
+  /** Заклинание, выбранное в спеллбуке (для показа описания/статов) — чисто локальный
+   *  предпросмотр, не нужен за пределами Lobby. */
   protected readonly selectedSpellId = signal<string | null>(null);
   protected readonly selectedSpell = computed(
     () => this.youSpells().find((s) => s.id === this.selectedSpellId()) ?? null,
-  );
-
-  /** Координаты (viewport-relative, как у getBoundingClientRect) кликнутой строки — тултип
-   *  рендерится вне .spellbook-left (у неё overflow-y: auto, и тултип внутри нее раздувал бы
-   *  скролл-область при клике на нижние строки), поэтому не может позиционироваться чистым CSS
-   *  (top: 100%) относительно строки и получает координаты через JS. */
-  protected readonly tooltipAnchor = signal<{ top: number; left: number; width: number } | null>(
-    null,
   );
 
   /** Кнопка поиска боя недоступна без ника — раздел про обязательность ника перед поиском. */
@@ -76,16 +68,8 @@ export class Lobby {
     this.selectedSpellId.set(null);
   }
 
-  /** Выбор заклинания в спеллбуке — только показывает описание (во всплывающем тултипе), не
-   *  кастует. Запоминает координаты кликнутой строки, чтобы позиционировать тултип под ней. */
-  selectSpellInfo(id: string, event: MouseEvent): void {
+  /** Выбор заклинания в спеллбуке — только показывает описание, не кастует. */
+  selectSpellInfo(id: string): void {
     this.selectedSpellId.set(id);
-    const row = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.tooltipAnchor.set({ top: row.bottom + 6, left: row.left, width: row.width });
-  }
-
-  /** Закрывает тултип описания заклинания (крестик в углу карточки). */
-  closeSpellInfo(): void {
-    this.selectedSpellId.set(null);
   }
 }
