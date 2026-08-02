@@ -62,4 +62,19 @@ export class MatchmakingService {
       { playerId: bot.playerId, school: bot.school, nickname: bot.nickname, isBot: true },
     );
   }
+
+  /** Обучение — вместо очереди сразу матч с ботом-манекеном (см. MatchMode.training),
+   *  минуя this.queue целиком: игрок не должен ждать/делить манекена с другими. */
+  createTrainingMatch(
+    playerId: string,
+    school: SpellSchool,
+    nickname: string,
+    bot: BotIdentity,
+  ): MatchState {
+    return this.duelService.createMatch(
+      { playerId, school, nickname },
+      { playerId: bot.playerId, school: bot.school, nickname: bot.nickname, isBot: true },
+      'training',
+    );
+  }
 }

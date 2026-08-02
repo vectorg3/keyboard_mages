@@ -70,6 +70,7 @@ export class MatchmakingGateway
         opponentId: bot.playerId,
         opponentSchool: bot.school,
         opponentNickname: bot.nickname,
+        mode: match.mode,
       });
     }
   }
@@ -112,8 +113,38 @@ export class MatchmakingGateway
         opponentId,
         opponentSchool: match.players[opponentId].school,
         opponentNickname: match.players[opponentId].nickname,
+        mode: match.mode,
       });
     }
+  }
+
+  /** Обучение — минует очередь целиком (см. MatchmakingService.createTrainingMatch), матч
+   *  с ботом-манекеном создаётся сразу по нажатию кнопки в лобби, а не по find_match. */
+  @SubscribeMessage('start_training')
+  handleStartTraining(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: FindMatchPayload,
+  ): void {
+    const nickname = (payload.nickname ?? '').trim().slice(0, MAX_NICKNAME_LENGTH);
+    if (!nickname) return;
+
+    const bot = this.botService.create();
+    const match = this.matchmakingService.createTrainingMatch(
+      payload.playerId,
+      payload.school,
+      nickname,
+      bot,
+    );
+
+    this.duelGateway.attachPlayer(match.matchId, payload.playerId, client);
+    client.emit('match_found', {
+      matchId: match.matchId,
+      playerId: payload.playerId,
+      opponentId: bot.playerId,
+      opponentSchool: bot.school,
+      opponentNickname: bot.nickname,
+      mode: match.mode,
+    });
   }
 
   @SubscribeMessage('cancel_match')

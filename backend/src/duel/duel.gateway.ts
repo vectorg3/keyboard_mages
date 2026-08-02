@@ -119,6 +119,13 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('cast_cancel')
+  handleCastCancel(@ConnectedSocket() client: Socket): void {
+    const meta = this.socketMeta.get(client.id);
+    if (!meta) return;
+    this.duelService.cancelCast(meta.matchId, meta.playerId);
+  }
+
   @SubscribeMessage('key_input')
   handleKeyInput(
     @ConnectedSocket() client: Socket,

@@ -7,6 +7,7 @@ import {
   ActiveCast,
   CastResolution,
   KeyInputResult,
+  MatchMode,
   MatchState,
   PlayerState,
 } from './duel.types';
@@ -24,6 +25,11 @@ export interface MatchPlayerInit {
 // Пауза между match_found и стартом боя (см. раздел 7.5 game-design.md): даёт клиентам
 // время отрисовать сцену/арену до того, как разрешены первые касты.
 const PRE_MATCH_DELAY_MS = 3000;
+
+// "Нет окна ввода" в обучении (см. game-design про подсказки в лобби) — вместо реального
+// отсутствия таймера просто ставим окно на сутки вперёд: остальная логика (deadline/tick)
+// остаётся той же самой, без отдельной ветки "нет дедлайна вовсе".
+const TRAINING_CAST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** Случайное целое из диапазона урона заклинания (границы включительно). */
 function rollDamage(range: { min: number; max: number }): number {
@@ -43,10 +49,12 @@ export class DuelService {
   createMatch(
     playerA: MatchPlayerInit,
     playerB: MatchPlayerInit,
+    mode: MatchMode = 'standard',
     now = Date.now(),
   ): MatchState {
     const match: MatchState = {
       matchId: randomUUID(),
+      mode,
       playerIds: [playerA.playerId, playerB.playerId],
       players: {
         [playerA.playerId]: this.createPlayerState(playerA),
@@ -191,10 +199,13 @@ export class DuelService {
     const readyAt = player.cooldowns[spellId] ?? 0;
     if (now < readyAt) return { ok: false, reason: 'on_cooldown' };
 
-    const effectiveWindow = this.effectsService.getEffectiveCastWindow(
-      spell.castWindowMs,
-      this.effectsOn(match, playerId),
-    );
+    const effectiveWindow =
+      match.mode === 'training'
+        ? TRAINING_CAST_WINDOW_MS
+        : this.effectsService.getEffectiveCastWindow(
+            spell.castWindowMs,
+            this.effectsOn(match, playerId),
+          );
 
     const cast: ActiveCast = {
       castId: randomUUID(),
@@ -482,6 +493,9 @@ export class DuelService {
     const match = this.matches.get(matchId);
     const bot = match?.players[botPlayerId];
     if (!match || !bot || !bot.isBot || match.finishedAt) return null;
+    // Манекен в обучении не атакует вообще (см. MatchMode) — игрок тренируется на живой цели
+    // с нулевым сопротивлением, а не на реальном сопернике.
+    if (match.mode === 'training') return null;
 
     const spell = this.spellsService.getBotSpell(bot.school);
     if (!spell) return null;
@@ -494,5 +508,13 @@ export class DuelService {
       result = this.handleKeyInput(matchId, botPlayerId, ch, now);
     }
     return result?.resolved ?? null;
+  }
+
+  /** Отменяет активный каст игрока по Esc — не таймаут и не завершённый каст, просто чистит
+   *  activeCast без штрафа (кулдаун не ставится, прогресс уже нигде не хранится, кроме самого
+   *  cast'а). Не-op, если каста и так нет (двойной Esc/гонка с только что resolved кастом). */
+  cancelCast(matchId: string, playerId: string): void {
+    const player = this.matches.get(matchId)?.players[playerId];
+    if (player) player.activeCast = null;
   }
 }

@@ -50,6 +50,13 @@ export class Lobby {
     this.socket.findMatch(this.youMageType());
   }
 
+  /** Сольная тренировка на боте-манекене — та же готовность (ник введён), что и у обычного
+   *  поиска, но без очереди: сервер сразу создаёт матч (см. SocketService.startTraining). */
+  onStartTraining(): void {
+    if (!this.canFindMatch()) return;
+    this.socket.startTraining(this.youMageType());
+  }
+
   onCancelFindMatch(): void {
     this.socket.cancelFindMatch();
   }

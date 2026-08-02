@@ -342,3 +342,19 @@
   transform: translate(4px, 4px);
   box-shadow: 0 0 0 var(--arcane);
 }
+
+/* Кнопка обучения — тень цвета школы (var(--arcane)), чтобы визуально не путать со "второстепенной"
+   ОТМЕНОЙ (var(--mute)) — обучение такое же полноценное действие, как "НАЙТИ БОЙ". */
+.keycap-btn--training {
+  box-shadow: 4px 4px 0 var(--arcane);
+}
+
+.keycap-btn--training:hover:not(:disabled) {
+  border-color: var(--ember);
+  box-shadow: 4px 4px 0 var(--ember);
+}
+
+.keycap-btn--training:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--ember);
+}
