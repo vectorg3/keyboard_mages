@@ -243,6 +243,29 @@
   z-index: 10;
 }
 
+/* ---- Training hint: onboarding banner shown only in a solo training match (see isTraining()) ---- */
+
+/* bottom — чуть выше .cast-window (clamp(5.5rem,13vw,7.5rem) + собственная высота), а не только
+   .spell-bar: подсказка "печатайте символы" (hint 'type') висит одновременно с открытым окном
+   каста, и обе не должны наезжать друг на друга. */
+.training-hint {
+  position: fixed;
+  bottom: clamp(calc(9.5rem + 10px), calc(20vw + 10px), calc(12rem + 10px));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(90vw, 34rem);
+  margin: 0;
+  padding: 0.85rem 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--arcane);
+  z-index: 12;
+}
+
 /* ---- Cast window: trigger to type, appears once a spell is armed ---- */
 
 .cast-window {

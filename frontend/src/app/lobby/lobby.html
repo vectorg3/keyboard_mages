@@ -87,6 +87,16 @@
   >
     {{ socket.status() === 'searching' ? 'ПОИСК…' : 'НАЙТИ БОЙ' }}
   </button>
+  @if (socket.status() === 'idle') {
+    <button
+      class="keycap-btn keycap-btn--training"
+      type="button"
+      [disabled]="!canFindMatch()"
+      (click)="onStartTraining()"
+    >
+      ОБУЧЕНИЕ
+    </button>
+  }
   @if (socket.status() === 'searching') {
     <button class="keycap-btn keycap-btn--cancel" type="button" (click)="onCancelFindMatch()">
       ОТМЕНА

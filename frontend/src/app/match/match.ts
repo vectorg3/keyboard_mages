@@ -38,6 +38,21 @@ const FLOATING_NUMBER_LIFETIME_MS = 1000;
 // даёт кадру с погибшим персонажем "повисеть" перед тем, как его накроет оверлей результата.
 const RESULT_DELAY_AFTER_DEATH_MS = 2500;
 
+/** Шаги обучающей подсказки (см. HINT_TEXT) — строго по порядку, назад переходит только
+ *  'press' <-> 'type' (Esc/таймаут отменяет каст до первого успеха), 'cooldown' и 'goal'
+ *  необратимы после первого успешного каста. */
+type TrainingHintStage = 'press' | 'type' | 'cooldown' | 'goal';
+
+const HINT_TEXT: Record<TrainingHintStage, string> = {
+  press: 'Нажмите горячую клавишу заклинания (от 1 до 5)',
+  type: 'Печатайте символы на клавиатуре, ошибка будет сбрасывать прогресс',
+  cooldown: 'У заклинаний есть время восстановления, и заклинания одного и того же тира оно общее',
+  goal: 'Доведите здоровье соперника до 0',
+};
+
+// Сколько подсказка "восстановление" висит перед тем, как её сменит финальная "добей соперника".
+const GOAL_HINT_DELAY_MS = 4000;
+
 @Component({
   selector: 'app-match',
   imports: [Character],
@@ -96,6 +111,13 @@ export class Match implements AfterViewInit, OnDestroy {
   /** Кто-то из бойцов уже умирает/умер — матч фактически решён, дальше кастовать нельзя, даже
    *  пока окно результата ещё не появилось (см. RESULT_DELAY_AFTER_DEATH_MS). */
   protected readonly matchEnding = computed(() => this.youDying() || this.foeDying());
+
+  /** Сольная тренировка на боте-манекене (см. MatchInfo.mode) — гейтит подсказки, скрывает
+   *  таймер окна ввода (оно и правда не ограничено, см. TRAINING_CAST_WINDOW_MS на бэкенде). */
+  protected readonly isTraining = computed(() => this.socket.match()?.mode === 'training');
+
+  protected readonly hintStage = signal<TrainingHintStage>('press');
+  protected readonly hintText = computed(() => HINT_TEXT[this.hintStage()]);
 
   protected readonly countdownSeconds = computed(() => {
     const ms = this.socket.countdownMs();
@@ -253,6 +275,34 @@ export class Match implements AfterViewInit, OnDestroy {
       const loserFighter: Fighter = result === 'loss' ? 'you' : 'foe';
       (loserFighter === 'you' ? this.youDying : this.foeDying).set(true);
     });
+
+    // Подсказки обучения — читает activeCast()/lastResolved() целиком на каждое изменение,
+    // а не пытается различить "было true, стало false" по предыдущему значению: оба сигнала
+    // обновляются синхронно из одного и того же события (см. SocketService — spell_resolved
+    // чистит activeCast только для своего кастера), так что эффект видит согласованную пару.
+    // 'press' <-> 'type' может качаться туда-сюда сколько угодно (открыл окно — Esc/пока не
+    // докастовал — снова открыл), а вот 'cooldown'/'goal' необратимы после первого успеха.
+    effect(() => {
+      if (!this.isTraining()) return;
+      const cast = this.socket.activeCast();
+      const resolved = this.socket.lastResolved();
+
+      if (cast) {
+        if (this.hintStage() === 'press') this.hintStage.set('type');
+        return;
+      }
+
+      if (this.hintStage() !== 'type') return;
+
+      if (resolved?.success && resolved.casterId === this.socket.playerId) {
+        this.hintStage.set('cooldown');
+        setTimeout(() => {
+          if (this.hintStage() === 'cooldown') this.hintStage.set('goal');
+        }, GOAL_HINT_DELAY_MS);
+      } else {
+        this.hintStage.set('press'); // отменили (Esc) или сгорел каст, так и не докастовав
+      }
+    });
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -300,6 +350,10 @@ export class Match implements AfterViewInit, OnDestroy {
    *  window-listener'а в App проверка на "матч вообще есть" тут не нужна. */
   @HostListener('window:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.socket.cancelCast();
+      return;
+    }
     if (event.key.length !== 1) return;
 
     const cast = this.socket.activeCast();

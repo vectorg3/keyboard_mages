@@ -80,11 +80,17 @@
     <p class="cast-rejected">{{ reason }}</p>
   }
 
+  @if (isTraining()) {
+    <p class="training-hint" aria-live="polite">{{ hintText() }}</p>
+  }
+
   @if (socket.activeCast(); as cast) {
     <div class="cast-window" aria-live="assertive">
-      <div class="cast-window-bar-track">
-        <div class="cast-window-bar" [style.animationDuration.ms]="cast.windowMs"></div>
-      </div>
+      @if (!isTraining()) {
+        <div class="cast-window-bar-track">
+          <div class="cast-window-bar" [style.animationDuration.ms]="cast.windowMs"></div>
+        </div>
+      }
       <span class="sr-only">{{ activeCastTrigger() }}</span>
       <div class="cast-window-chars" aria-hidden="true">
         @for (ch of (activeCastTrigger() ?? '').split(''); track $index) {

@@ -24,8 +24,14 @@ export interface PlayerState {
   isBot: boolean;
 }
 
+/** 'training' — сольный матч с ботом-манекеном (см. BotService/MatchmakingService.
+ *  createTrainingMatch): бот не кастует (DuelService.driveBot выходит сразу), а окно ввода
+ *  триггера не ограничено по времени (см. TRAINING_CAST_WINDOW_MS в DuelService.startCast). */
+export type MatchMode = 'standard' | 'training';
+
 export interface MatchState {
   matchId: string;
+  mode: MatchMode;
   players: Record<string, PlayerState>;
   playerIds: [string, string];
   effects: ActiveEffect[];

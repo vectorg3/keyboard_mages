@@ -15,6 +15,9 @@ export interface MatchInfo {
   /** Школа соперника, выбранная им перед постановкой в очередь — для правильного спрайта. */
   opponentSchool: string;
   opponentNickname: string;
+  /** 'training' — сольный матч с ботом-манекеном (см. Lobby.onStartTraining), без реального
+   *  окна ввода триггера и без атак соперника — гейтит подсказки/UI-отличия в Match. */
+  mode: 'standard' | 'training';
 }
 
 /** Активный каст, ожидающий ввода триггера (окно открыто). */
@@ -118,6 +121,17 @@ export class SocketService {
     });
   }
 
+  /** Обучение — минует очередь, сервер сразу создаёт матч с ботом-манекеном (см.
+   *  MatchmakingGateway.handleStartTraining) и отвечает тем же match_found, что и find_match. */
+  startTraining(school: string): void {
+    this.status.set('searching');
+    this.getSocket().emit('start_training', {
+      playerId: this.playerId,
+      school,
+      nickname: this.nickname().trim(),
+    });
+  }
+
   /** Снимает игрока с очереди поиска — доступно только пока status === 'searching' (до
    *  match_found). Сбрасываем статус сразу, не дожидаясь сервера: если матч всё же успел
    *  найтись до того, как cancel_match дошёл, match_found просто перезапишет статус обратно. */
@@ -135,6 +149,16 @@ export class SocketService {
   /** Один введённый символ триггера, пока открыто окно ввода (см. activeCast). */
   sendKey(char: string): void {
     this.getSocket().emit('key_input', { char });
+  }
+
+  /** Отменяет текущий каст по Esc — оптимистично чистит activeCast локально (без ожидания
+   *  ответа сервера, тут нечего рассинхронизировать: отмена не может "не пройти") и сообщает
+   *  серверу, чтобы он не ждал больше символов по уже закрытому на клиенте окну. */
+  cancelCast(): void {
+    if (!this.activeCast()) return;
+    this.getSocket().emit('cast_cancel');
+    this.activeCast.set(null);
+    this.castProgress.set(0);
   }
 
   /** Сбрасывает всё состояние конкретного матча — по кнопке "Вернуться на главную" после
