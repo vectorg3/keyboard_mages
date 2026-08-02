@@ -17,41 +17,28 @@
       }
     </div>
 
-    <div class="spellbook-left">
+    <div class="spellbook-left" (scroll)="closeSpellInfo()">
       <div class="spellbook-list">
         @for (spell of youSpells(); track spell.id) {
           <button
             type="button"
             class="spellbook-item"
             [class.spellbook-item--active]="selectedSpellId() === spell.id"
-            (click)="selectSpellInfo(spell.id)"
+            (click)="selectSpellInfo(spell.id, $event)"
           >
             <img class="spellbook-item-icon" [src]="spellIconPath(spell.id)" [alt]="spell.name" />
-            <span class="spellbook-item-name">{{ spell.name }}</span>
+            <span
+              class="spellbook-item-name"
+              [class.spellbook-item-name--tier-1]="spell.tier === 1"
+              [class.spellbook-item-name--tier-2]="spell.tier === 2"
+              [class.spellbook-item-name--tier-3]="spell.tier === 3"
+              >{{ spell.name }}</span
+            >
           </button>
         } @empty {
           <p class="spellbook-empty">Для этой школы пока нет заклинаний.</p>
         }
       </div>
-
-      @if (selectedSpell(); as spell) {
-        <div class="spellbook-details">
-          <h3 class="spellbook-details-name">{{ spell.name }}</h3>
-          <p class="spellbook-details-description">{{ spell.description }}</p>
-          <dl class="spellbook-details-stats">
-            @if (spell.damage) {
-              <dt>Урон</dt>
-              <dd>{{ spell.damage }}</dd>
-            }
-            @if (spell.effect) {
-              <dt>Эффект</dt>
-              <dd>{{ spell.effect }}</dd>
-            }
-            <dt>Восстановление</dt>
-            <dd>{{ spell.cooldownSec }} сек</dd>
-          </dl>
-        </div>
-      }
     </div>
 
     <div class="spellbook-right">
@@ -66,6 +53,46 @@
         aria-hidden="true"
       ></div>
     </div>
+
+    @if (selectedSpell(); as spell) {
+      <div
+        class="spellbook-tooltip"
+        [style.top.px]="tooltipAnchor()?.top"
+        [style.left.px]="tooltipAnchor()?.left"
+        [style.width.px]="tooltipAnchor()?.width"
+      >
+        <button
+          type="button"
+          class="spellbook-tooltip-close"
+          aria-label="Закрыть"
+          (click)="closeSpellInfo()"
+        ></button>
+        <div class="spellbook-tooltip-title">
+          <img class="spellbook-tooltip-icon" [src]="spellIconPath(spell.id)" [alt]="spell.name" />
+          <h3
+            class="spellbook-tooltip-name"
+            [class.spellbook-item-name--tier-1]="spell.tier === 1"
+            [class.spellbook-item-name--tier-2]="spell.tier === 2"
+            [class.spellbook-item-name--tier-3]="spell.tier === 3"
+          >
+            {{ spell.name }}
+          </h3>
+        </div>
+        <p class="spellbook-tooltip-description">{{ spell.description }}</p>
+        <dl class="spellbook-tooltip-stats">
+          @if (spell.damage) {
+            <dt>Урон</dt>
+            <dd>{{ spell.damage }}</dd>
+          }
+          @if (spell.effect) {
+            <dt>Эффект</dt>
+            <dd>{{ spell.effect }}</dd>
+          }
+          <dt>Восстановление</dt>
+          <dd>{{ spell.cooldownSec }} сек</dd>
+        </dl>
+      </div>
+    }
   </div>
 </section>
 

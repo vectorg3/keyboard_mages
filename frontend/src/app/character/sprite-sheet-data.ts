@@ -31,9 +31,12 @@ const IDLE_DURATION_MS = 1600;
  *  rows) also matches the old CSS background-size, but frameWidth/frameHeight do NOT match the
  *  size baked into each filename (e.g. "64x64px") — the old CSS used percentage-based
  *  background-size, which is resolution-independent, so nobody had to know the real pixel size.
- *  The actual sheets measured 4× the filename's number (256×256, and 340×340 for fire's death
- *  sheet instead of the filename's 85×85) — verified by loading each PNG and reading
- *  naturalWidth/Height, not by trusting the filename. */
+ *  The actual sheets measure 4× the filename's number (256×256) — verified by loading each PNG
+ *  and reading naturalWidth/Height, not by trusting the filename. Fire's death sheet originally
+ *  exported on an oversized 340×340 canvas (filename "85x85") with the same-scale character art
+ *  as its other animations, just surrounded by extra padding — that made it render visibly
+ *  smaller than every other death animation once scaled to fit the character box. The PNG has
+ *  been re-cropped to a centered 256×256 per frame to match the rest. */
 export const CHARACTER_SPRITES: Record<MageType, SchoolSprites> = {
   fire: {
     idle: {
@@ -56,8 +59,8 @@ export const CHARACTER_SPRITES: Record<MageType, SchoolSprites> = {
     },
     death: {
       path: '/mage-sprites/fire/sprite-animation-85x85-8f-sheet-death.png',
-      frameWidth: 340,
-      frameHeight: 340,
+      frameWidth: 256,
+      frameHeight: 256,
       columns: 4,
       rows: 2,
       frameCount: 8,
