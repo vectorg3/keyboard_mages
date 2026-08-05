@@ -147,8 +147,7 @@ export class Match implements AfterViewInit, OnDestroy {
 
   protected readonly activeCastTrigger = computed(() => {
     const cast = this.socket.activeCast();
-    if (!cast) return null;
-    return this.youSpells().find((s) => s.id === cast.spellId)?.trigger ?? null;
+    return cast?.trigger ?? null;
   });
 
   protected readonly youHpPercent = computed(() =>
@@ -359,7 +358,7 @@ export class Match implements AfterViewInit, OnDestroy {
     const cast = this.socket.activeCast();
     if (cast) {
       this.socket.sendKey(event.key);
-      this.predictKeystroke(cast.spellId, event.key);
+      this.predictKeystroke(cast.trigger, event.key);
       return;
     }
 
@@ -368,10 +367,8 @@ export class Match implements AfterViewInit, OnDestroy {
   }
 
   /** Зеркалит проверку символа из DuelService.handleKeyInput на бэкенде — см. locallyTypedCount. */
-  private predictKeystroke(spellId: string, char: string): void {
-    const spell = this.youSpells().find((s) => s.id === spellId);
-    if (!spell) return;
-    const expected = spell.trigger[this.locallyTypedCount()];
+  private predictKeystroke(trigger: string, char: string): void {
+    const expected = trigger[this.locallyTypedCount()];
     this.locallyTypedCount.set(char === expected ? this.locallyTypedCount() + 1 : 0);
   }
 

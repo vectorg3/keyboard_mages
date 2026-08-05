@@ -24,6 +24,7 @@ export interface MatchInfo {
 export interface ActiveCastInfo {
   castId: string;
   spellId: string;
+  trigger: string;
   deadline: number; // серверный timestamp, после которого каст сгорает по таймауту
   /** Окно каста в мс, оставшееся С МОМЕНТА ПОЛУЧЕНИЯ cast_started (не полное серверное окно —
    *  учитывает сетевую задержку между стартом каста на сервере и приходом события клиенту).
@@ -206,13 +207,14 @@ export class SocketService {
 
     this.socket.on(
       'cast_started',
-      (payload: { castId: string; deadline: number; windowMs: number }) => {
+      (payload: { castId: string; deadline: number; trigger: string; windowMs: number }) => {
         if (!this.pendingSpellId) return; // не наш каст (не должно происходить, но на всякий случай)
         const spellId = this.pendingSpellId;
         this.pendingSpellId = null;
         this.activeCast.set({
           castId: payload.castId,
           spellId,
+          trigger: payload.trigger,
           deadline: payload.deadline,
           // Приходит с сервера уже готовым (startedAt/deadline в одних часах) — раньше
           // считали как payload.deadline - Date.now(), но часы браузера и сервера не

@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { EffectsService } from '../effects/effects.service';
 import { SpellsService } from '../spells/spells.service';
 import { SpellSchool, SpellTier, SpellType } from '../spells/spell.types';
+import { pickTrigger } from '../spells/trigger-pools';
 import {
   ActiveCast,
   CastResolution,
@@ -98,6 +99,7 @@ export class DuelService {
       hp: MAX_HP,
       cooldowns: {},
       activeCast: null,
+      lastTrigger: null,
       silencedSpellId: null,
       isBot: init.isBot ?? false,
     };
@@ -207,15 +209,17 @@ export class DuelService {
             this.effectsOn(match, playerId),
           );
 
+    const trigger = pickTrigger(spell.school, spell.tier, player.lastTrigger);
     const cast: ActiveCast = {
       castId: randomUUID(),
       spellId,
-      trigger: spell.trigger,
+      trigger,
       startedAt: now,
       deadline: now + effectiveWindow,
       typedCount: 0,
     };
     player.activeCast = cast;
+    player.lastTrigger = trigger;
     return { ok: true, cast };
   }
 

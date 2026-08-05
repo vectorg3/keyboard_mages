@@ -17,6 +17,7 @@ export interface PlayerState {
   hp: number;
   cooldowns: Record<string, number>; // spellId -> timestamp, когда снова доступен
   activeCast: ActiveCast | null;
+  lastTrigger: string | null;
   silencedSpellId: string | null; // слот, заблокированный эффектом Silence
   /** Виртуальный игрок без реального сокета (см. BotService/MatchmakingGateway) — вместо
    *  реального ввода за него кастует DuelService.driveBot() по кулдауну своим единственным

@@ -112,6 +112,7 @@ export class DuelGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('cast_started', {
       castId: result.cast.castId,
       deadline: result.cast.deadline,
+      trigger: result.cast.trigger,
       // Длительность окна — считаем на сервере (startedAt/deadline тут в одних и тех же
       // часах), а не на клиенте как deadline - Date.now(): часы браузера и сервера не
       // синхронизированы, и на деплое (не на localhost) это давало заметно укороченное окно.
