@@ -16,5 +16,12 @@
       <span class="floating-number" [class.floating-number--heal]="n.kind === 'heal'">{{ n.text }}</span>
     }
   </div>
-  <canvas class="sprite-canvas" #spriteCanvas aria-hidden="true"></canvas>
+  <canvas
+    class="sprite-canvas"
+    [class.sprite-canvas--storm]="
+      vfxSpellId() === 'fire_inferno_storm' || vfxSpellId() === 'ice_blizzard'
+    "
+    #spriteCanvas
+    aria-hidden="true"
+  ></canvas>
 </div>

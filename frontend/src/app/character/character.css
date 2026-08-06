@@ -17,6 +17,8 @@
 }
 
 .character-status {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -105,6 +107,8 @@
 
 .character-sprite-wrap {
   position: relative;
+  width: clamp(9rem, 23vw, 14rem);
+  height: clamp(9rem, 23vw, 14rem);
 }
 
 .floating-numbers {
@@ -147,6 +151,33 @@
    зеркалирование foe и подбор кадра теперь делает Pixi, а не CSS transform/keyframes. */
 .sprite-canvas {
   display: block;
-  width: clamp(9rem, 23vw, 14rem);
-  height: clamp(9rem, 23vw, 14rem);
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+/* A short white impact frame makes damage legible without interrupting the Pixi body animation. */
+.sprite-canvas--damage-flash {
+  animation: damage-impact-flash 260ms steps(1, end);
+}
+
+@keyframes damage-impact-flash {
+  0%,
+  24% {
+    filter: brightness(0) invert(1);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+/* Storm ultimates need sky above the target and room for several impact points. The wrapper keeps
+   the fighter's layout footprint unchanged; only the Pixi drawing surface grows around it. */
+.sprite-canvas--storm {
+  width: clamp(13rem, 33.5vw, 20.25rem);
+  height: clamp(15rem, 38vw, 23rem);
 }

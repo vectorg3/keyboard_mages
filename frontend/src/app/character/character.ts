@@ -45,6 +45,8 @@ export class Character implements AfterViewInit, OnDestroy {
   readonly effects = input.required<EffectInfo[]>();
   readonly floatingNumbers = input.required<FloatingNumber[]>();
   readonly attacking = input.required<boolean>();
+  /** Monotonically increasing token from Match; each new value restarts the white impact flash. */
+  readonly hitFlash = input(0);
 
   /** spellId проигрываемого сейчас VFX-каста (см. SPELL_VFX) на ЭТОМ персонаже, как цели
    *  заклинания — null, если сейчас ничего не играется. */
@@ -90,6 +92,15 @@ export class Character implements AfterViewInit, OnDestroy {
     effect(() => {
       if (!this.pixiReady()) return;
       void this.playVfx(this.vfxSpellId());
+    });
+
+    effect(() => {
+      if (!this.pixiReady() || this.hitFlash() === 0) return;
+      const canvas = this.canvasRef().nativeElement;
+      // Removing the class and forcing layout makes consecutive rapid hits restart the CSS steps.
+      canvas.classList.remove('sprite-canvas--damage-flash');
+      void canvas.offsetWidth;
+      canvas.classList.add('sprite-canvas--damage-flash');
     });
   }
 
@@ -142,17 +153,57 @@ export class Character implements AfterViewInit, OnDestroy {
 
   private layout(): void {
     if (!this.app || !this.root) return;
+    const canvas = this.canvasRef().nativeElement;
+    const canvasWidth = canvas.clientWidth;
+    const canvasHeight = canvas.clientHeight;
+    if (this.app.screen.width !== canvasWidth || this.app.screen.height !== canvasHeight) {
+      this.app.renderer.resize(canvasWidth, canvasHeight);
+    }
     const { width, height } = this.app.screen;
     this.root.position.set(width / 2, height / 2);
-    if (this.bodySprite) this.fitSprite(this.bodySprite);
-    if (this.vfxSprite) this.fitSprite(this.vfxSprite);
+    if (this.bodySprite) this.fitBodySprite(this.bodySprite);
+    if (this.vfxSprite) this.fitVfxSprite(this.vfxSprite);
   }
 
-  private fitSprite(sprite: AnimatedSprite): void {
+  private fitBodySprite(sprite: AnimatedSprite): void {
     if (!this.app) return;
+    const wrap = this.canvasRef().nativeElement.parentElement;
+    const size = wrap
+      ? Math.min(wrap.clientWidth, wrap.clientHeight)
+      : Math.min(this.app.screen.width, this.app.screen.height);
+    sprite.width = size;
+    sprite.height = size;
+    // Storm canvases grow upward while their bottom edge stays anchored to the fighter.
+    // Keep the body in the original bottom-aligned square instead of at the enlarged canvas center.
+    sprite.position.set(
+      0,
+      this.isStormVfx() ? (this.app.screen.height - size) / 2 : 0,
+    );
+  }
+
+  private fitVfxSprite(sprite: AnimatedSprite): void {
+    if (!this.app) return;
+    if (this.isStormVfx()) {
+      sprite.width = this.app.screen.width;
+      sprite.height = this.app.screen.height;
+      // The target character's root is mirrored on the right side. Blizzard is directional,
+      // so flip it locally once more: its shards must always travel caster -> target.
+      sprite.scale.x =
+        (this.vfxSpellId() === 'ice_blizzard' ? -1 : 1) * Math.abs(sprite.scale.x);
+      // Storm sheets keep their impact line around y=52 in a 64px frame. Move it closer to the
+      // canvas bottom so falling projectiles land at the fighter's feet instead of their torso.
+      sprite.position.set(0, this.app.screen.height * (10 / 64));
+      return;
+    }
     const size = Math.min(this.app.screen.width, this.app.screen.height);
     sprite.width = size;
     sprite.height = size;
+    sprite.position.set(0, 0);
+  }
+
+  private isStormVfx(): boolean {
+    const spellId = this.vfxSpellId();
+    return spellId === 'fire_inferno_storm' || spellId === 'ice_blizzard';
   }
 
   private async loadTexture(path: string): Promise<Texture> {
@@ -176,7 +227,7 @@ export class Character implements AfterViewInit, OnDestroy {
             ? () => this.attackAnimationEnd.emit()
             : undefined,
     });
-    this.fitSprite(sprite);
+    this.fitBodySprite(sprite);
     this.root.addChildAt(sprite, 0);
     this.bodySprite = sprite;
   }
@@ -198,7 +249,7 @@ export class Character implements AfterViewInit, OnDestroy {
       loop: false,
       onComplete: () => this.vfxAnimationEnd.emit(),
     });
-    this.fitSprite(sprite);
+    this.fitVfxSprite(sprite);
     this.root.addChild(sprite);
     this.vfxSprite = sprite;
   }

@@ -25,7 +25,7 @@ import {
 } from '../shared/format';
 import { Character } from '../character/character';
 import { SPELL_VFX } from '../shared/spell-vfx-data';
-import { CHARACTER_SPRITES } from '../character/sprite-sheet-data';
+import { CHARACTER_SPRITES, SpriteGrid } from '../character/sprite-sheet-data';
 import { SpellSoundService } from '../shared/spell-sound.service';
 import { CastingSoundService } from '../shared/casting-sound.service';
 import { Point, ProjectileLayer } from './projectile-layer';
@@ -33,6 +33,76 @@ import { Point, ProjectileLayer } from './projectile-layer';
 // Должно совпадать с длительностью CSS-анимации .floating-number (character.css), иначе циферка
 // либо пропадёт из DOM до конца анимации, либо повиснет статично после её завершения.
 const FLOATING_NUMBER_LIFETIME_MS = 1000;
+
+const WINTERS_GRASP_HAND: SpriteGrid = {
+  path: '/spell-animations/frost/ice_winters_grasp_hand.png',
+  frameWidth: 96,
+  frameHeight: 64,
+  columns: 8,
+  rows: 1,
+  frameCount: 8,
+  durationMs: 600,
+};
+
+const ICE_SHARD_PROJECTILE: SpriteGrid = {
+  path: '/spell-animations/frost/ice_ice_shard_projectile.png',
+  frameWidth: 64,
+  frameHeight: 48,
+  columns: 8,
+  rows: 1,
+  frameCount: 8,
+  durationMs: 480,
+};
+
+const ARCANE_MISSILE_PROJECTILE: SpriteGrid = {
+  path: '/spell-animations/arcane/arcane_arcane_missile_projectile.png',
+  frameWidth: 64,
+  frameHeight: 48,
+  columns: 9,
+  rows: 1,
+  frameCount: 9,
+  durationMs: 360,
+};
+
+const TIME_WARP_HOURGLASS: SpriteGrid = {
+  path: '/spell-animations/arcane/arcane_time_warp.png',
+  frameWidth: 64,
+  frameHeight: 64,
+  columns: 14,
+  rows: 1,
+  frameCount: 14,
+  durationMs: 1120,
+};
+
+const CHAOS_BOLT_PROJECTILE: SpriteGrid = {
+  path: '/spell-animations/chaos/chaos_chaos_bolt_projectile.png',
+  frameWidth: 64,
+  frameHeight: 48,
+  columns: 8,
+  rows: 1,
+  frameCount: 8,
+  durationMs: 420,
+};
+
+const CORRUPTION_HAND_PROJECTILE: SpriteGrid = {
+  path: '/spell-animations/chaos/chaos_corruption_hand.png',
+  frameWidth: 64,
+  frameHeight: 48,
+  columns: 8,
+  rows: 1,
+  frameCount: 8,
+  durationMs: 420,
+};
+
+const VINE_WHIP_PROJECTILE: SpriteGrid = {
+  path: '/spell-animations/nature/nature_vine_whip_projectile.png',
+  frameWidth: 96,
+  frameHeight: 64,
+  columns: 8,
+  rows: 1,
+  frameCount: 8,
+  durationMs: 640,
+};
 
 // Пауза между концом анимации смерти (см. onDeathAnimationEnd) и появлением окна победы/поражения —
 // даёт кадру с погибшим персонажем "повисеть" перед тем, как его накроет оверлей результата.
@@ -168,6 +238,9 @@ export class Match implements AfterViewInit, OnDestroy {
    *  через FLOATING_NUMBER_LIFETIME_MS (см. constructor). */
   protected readonly youFloatingNumbers = signal<FloatingNumber[]>([]);
   protected readonly foeFloatingNumbers = signal<FloatingNumber[]>([]);
+  /** Incremented on every incoming damage event to restart each fighter's impact flash. */
+  protected readonly youHitFlash = signal(0);
+  protected readonly foeHitFlash = signal(0);
 
   /** Активные баффы/дебаффы над персонажем — иконка = иконка заклинания-источника
    *  (`sourceSpellId`), не общая на тип эффекта (раздел 7.25 game-design.md). */
@@ -195,11 +268,20 @@ export class Match implements AfterViewInit, OnDestroy {
       if (vfx) {
         const targetFighter: Fighter =
           vfx.target === 'caster' ? casterFighter : casterFighter === 'you' ? 'foe' : 'you';
-        this.triggerVfx(targetFighter, resolved.spellId);
+        // Winter's Grasp is rendered on the arena-wide projectile canvas; a target-local 64x64
+        // effect cannot travel between both fighters or continue through the opponent.
+        if (
+          resolved.spellId !== 'ice_winters_grasp' &&
+          resolved.spellId !== 'arcane_time_warp'
+        ) {
+          this.triggerVfx(targetFighter, resolved.spellId);
+        }
 
         // Снаряд летит только на удар по сопернику (не на баффы на себя) и только если у школы
         // кастера есть спрайт снаряда (CHARACTER_SPRITES[...].projectile) — сейчас только fire.
-        if (vfx.target === 'opponent') {
+        // Spark is the only spell whose impact VFX is paired with an arena-crossing fireball.
+        // Other offensive fire spells render only their own target-side animation.
+        if (resolved.spellId === 'fire_spark') {
           const casterMageType = casterFighter === 'you' ? this.youMageType() : this.foeMageType();
           const projectileGrid = CHARACTER_SPRITES[casterMageType].projectile;
           if (projectileGrid) {
@@ -214,6 +296,83 @@ export class Match implements AfterViewInit, OnDestroy {
               this.canvasLocalCenter(targetEl, canvas),
             );
           }
+        } else if (resolved.spellId === 'ice_winters_grasp') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.sweepThrough(
+            WINTERS_GRASP_HAND,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'ice_ice_shard') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.fireDirected(
+            ICE_SHARD_PROJECTILE,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'chaos_chaos_bolt') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.fireDirected(
+            CHAOS_BOLT_PROJECTILE,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'chaos_corruption') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.fireDirected(
+            CORRUPTION_HAND_PROJECTILE,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'nature_vine_whip') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.fireDirected(
+            VINE_WHIP_PROJECTILE,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'arcane_arcane_missile') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const targetEl = (targetFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          this.projectileLayer.fireArcaneVolley(
+            ARCANE_MISSILE_PROJECTILE,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(targetEl, canvas),
+          );
+        } else if (resolved.spellId === 'arcane_time_warp') {
+          const canvas = this.projectileCanvasRef().nativeElement;
+          const casterEl = (casterFighter === 'you' ? this.youCharRef() : this.foeCharRef())
+            .nativeElement;
+          const opponentEl = (casterFighter === 'you' ? this.foeCharRef() : this.youCharRef())
+            .nativeElement;
+          this.projectileLayer.showTimeWarp(
+            TIME_WARP_HOURGLASS,
+            this.canvasLocalCenter(casterEl, canvas),
+            this.canvasLocalCenter(opponentEl, canvas),
+          );
         }
       }
 
@@ -254,6 +413,9 @@ export class Match implements AfterViewInit, OnDestroy {
       if (!fighter) return;
 
       const list = fighter === 'you' ? this.youFloatingNumbers : this.foeFloatingNumbers;
+      if (change.amount < 0) {
+        (fighter === 'you' ? this.youHitFlash : this.foeHitFlash).update((value) => value + 1);
+      }
       const entry: FloatingNumber = {
         id: change.id,
         text: (change.amount > 0 ? '+' : '') + change.amount,
